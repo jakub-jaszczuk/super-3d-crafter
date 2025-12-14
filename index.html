@@ -36,9 +36,10 @@
             transform: translate(-50%, -50%);
         }
 
+        /* ZASOBY - teraz w kolumnie nad przedmiotami */
         #hud {
             position: absolute;
-            bottom: 100px;
+            bottom: 150px; /* Podniesione, aby zrobić miejsce na #items-display */
             left: 20px;
             color: white;
             font-size: 14px;
@@ -49,6 +50,54 @@
             min-width: 200px;
             line-height: 1.6;
         }
+        
+        /* WYŚWIETLANIE PRZEDMIOTÓW (narzędzia/zbroja) */
+        #items-display {
+            position: absolute;
+            bottom: 50px; /* Pozycja pod #hud */
+            left: 20px;
+            display: flex;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+            pointer-events: none;
+            max-width: 300px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            flex-wrap: wrap; /* Zezwala na zawijanie ikon */
+        }
+
+        .item-icon {
+            font-size: 20px;
+            padding: 5px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #555;
+            border-radius: 4px;
+            color: white;
+            position: relative;
+        }
+        
+        /* Wyróżnienie aktywnie wyposażonego przedmiotu */
+        .item-equipped {
+            border-color: #00FF00 !important;
+            box-shadow: 0 0 10px #00FF00;
+        }
+
+        /* Kolory ramek dla poszczególnych materiałów */
+        .item-wood { border-color: #8B4513; }
+        .item-stone { border-color: #808080; }
+        .item-iron { border-color: #D3D3D3; }
+        .item-diamond { border-color: #00FFFF; }
+        .item-poison { border-color: #2E8B57; }
+        .item-armor-base { border-color: #5F9EA0; }
+        .item-armor-iron { border-color: #708090; }
+        .item-bow { border-color: #5C4033; }
+
 
         #quick-slots-container {
             position: absolute;
@@ -76,6 +125,10 @@
             text-align: center;
         }
         
+        /* Specyficzne kształty slotów */
+        #slot-arrow { border-radius: 50%; }
+        #slot-plan, #slot-spell { border-radius: 8px; }
+
         .slot-active {
             border-color: #00FF00;
             background: rgba(0, 50, 0, 0.6);
@@ -86,6 +139,24 @@
             margin-bottom: 5px;
             font-weight: bold;
         }
+        
+        /* Czas odnowienia zaklęć */
+        #spell-cooldown-display {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: cyan;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
 
         #health-container {
             position: absolute;
@@ -299,6 +370,35 @@
             border-top: 1px solid #555;
             padding-top: 10px;
         }
+        
+        .inventory-section {
+            margin-top: 15px;
+            border-bottom: 1px dashed #555;
+            padding-bottom: 10px;
+        }
+
+        .inventory-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+        }
+
+        .item-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .item-status {
+            font-size: 10px;
+            color: #ccc;
+            margin-left: 10px;
+        }
+        
+        .equipped-status {
+            color: #00FF00;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -307,7 +407,8 @@
     <div id="crosshair"></div>
     <div id="slow-overlay"></div>
     
-    <div id="hud"></div>
+    <div id="hud"></div> 
+    <div id="items-display"></div> <!-- Kontener na posiadane narzędzia/broń/zbroję -->
     
     <div id="quick-slots-container">
         <div id="slot-plan" class="quick-slot">
@@ -317,6 +418,11 @@
         <div id="slot-arrow" class="quick-slot">
             <div class="slot-icon">🏹</div>
             <div id="slot-arrow-text">BRAK<br>STRZAŁY</div>
+        </div>
+        <div id="slot-spell" class="quick-slot"> <!-- NOWY SLOT -->
+            <div id="spell-cooldown-display">10s</div>
+            <div class="slot-icon">✨</div>
+            <div id="slot-spell-text">BRAK<br>ZAKLĘCIA</div>
         </div>
     </div>
     
@@ -340,11 +446,18 @@
     <div id="blocker">
         <h1 id="blocker-title">Symulator Craftingu 3D</h1>
         <p id="blocker-message">Kliknij, aby zagrać</p>
-        <p><strong>NOWE SLOTY:</strong> Naciśnij <span class="key">I</span>, aby przypisać strzały i plany do kwadratów na dole!</p>
-        <p><strong>DIAMENTY:</strong> Fioletowe bloki w jaskiniach (Wymagany Żelazny Kilof).</p>
+        <p><strong>UWAGA:</strong> Muzyka w tle (Dark Souls 3) nie jest obsługiwana ze względu na ograniczenia bezpieczeństwa ładowania zewnętrznych plików audio. </p>
+        <p><strong>NOWE:</strong> Masz już Drewnianą Siekierę! Użyj <span class="key">1</span>, <span class="key">2</span>, <span class="key">3</span> do szybkiej zmiany narzędzi. <span class="key">F</span> - użycie zaklęcia (10s CD).</p>
+        <p><strong>WAŻNE:</strong> Potwory (Zbrojny Szkielet!) pojawią się dopiero po stworzeniu zbroi!</p>
         <p>Sterowanie: <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> - Chodzenie | <span class="key">SPACJA</span> - Skok</p>
-        <p><span class="key">LPM</span> - Atak/Wydobycie | <span class="key">PPM</span> - Budowanie ze slotu | <span class="key">H</span> - Sadzenie</p>
+        <p><span class="key">LPM</span> - Atak/Wydobycie (tylko z wyposażonym narzędziem!) | <span class="key">PPM</span> - Budowanie</p>
+        <p><span class="key">E</span> - Crafting | <span class="key">I</span> - Ekwipunek (Wyposażanie)</p>
     </div>
+    
+    <!-- Dodatkowy element Audio (Placeholder) -->
+    <audio id="background-music" loop autoplay>
+        Twoja przeglądarka nie obsługuje elementu audio.
+    </audio>
 
     <!-- Menu Craftingu (E) -->
     <div id="crafting-menu" class="game-menu">
@@ -367,9 +480,17 @@
 
         <hr>
 
+        <button id="btn-black-ink" class="craft-btn" title="Można stworzyć tylko raz.">Czarny Atrament (1) (2 Węgiel, 2 Diam.)</button>
+        <button id="btn-repulsion-scroll" class="craft-btn" style="background-color: #8A2BE2;" title="Można stworzyć tylko raz.">Zwój Odpychania (4 Diam., 10 Nici)</button>
+        <button id="btn-fire-aura-scroll" class="craft-btn" style="background-color: #FF4500;" title="Można stworzyć tylko raz.">Zwój Ognistej Aury (1 Czarny Atrament, 10 Nici)</button>
+        <button id="btn-trap-scroll" class="craft-btn" style="background-color: #795548;" title="Można stworzyć tylko raz.">Zwój Pułapki (5 Żelazo, 10 Nici)</button> 
+        <button id="btn-teleport-scroll" class="craft-btn" style="background-color: #4B0082;" title="Można stworzyć tylko raz.">Zwój Teleportacji (3 Diam., 2 Węgiel)</button> 
+
+        <hr>
+
         <button id="btn-stone-sword" class="craft-btn">Kamienny Miecz (2 Kam., 1 Dr.)</button>
         <button id="btn-iron-sword" class="craft-btn">Żelazny Miecz (2 Żel., 1 Dr.)</button>
-        <button id="btn-poison-sword" class="craft-btn" style="background-color: #2E8B57;">Zatruty Miecz (Żel. Miecz + 1 Jad)</button>
+        <button id="btn-poison-sword" class="craft-btn">Zatruty Miecz (Żel. Miecz + 1 Jad)</button>
         <button id="btn-diamond-sword" class="craft-btn" style="background-color: #9370DB;">Diamentowy Miecz (1 Dr., 2 Diam.)</button>
 
         <hr>
@@ -388,13 +509,17 @@
     <!-- Menu Ekwipunku (I) -->
     <div id="inventory-menu" class="game-menu">
         <h2>Ekwipunek</h2>
-        <p>Wybierz co chcesz umieścić w szybkich slotach:</p>
+        <p>Wyposaż narzędzie/broń, aby móc z niego korzystać. Obecnie w ręce: <span id="current-tool-display" style="font-weight: bold; color: #00FF00;">Brak</span></p>
         <div id="inventory-list"></div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <script>
+        // Funkcje pomocnicze przeniesione na górę, aby uniknąć błędów inicjalizacji
+        function getRandomDropAmount() { return Math.floor(Math.random() * 3) + 1; }
+        const toolOwned = (id) => player[id + '_owned'];
+
         let camera, scene, renderer;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         let canJump = false, isGameOver = false;
@@ -406,21 +531,56 @@
         
         const PLAYER_HEIGHT = 10; 
         const BASE_SPEED = 400.0;
-        const JUMP_VELOCITY = 250; 
+        const JUMP_VELOCITY = 500; 
         const VIEW_DISTANCE = 2000; 
         const FOG_END = 500; 
         const BASE_HUNGER_DEPLETION_RATE = 0.5;
+        const SPELL_COOLDOWN = 10000; // 10 sekund cooldown na zaklęcia
+        let lastSpellTime = 0;
+        const spellCooldownDisplay = document.getElementById('spell-cooldown-display');
+
 
         const IRON_ARMOR_PENALTY = 0.75; 
         const WEB_SLOW_FACTOR = 0.3;
         
         const ZOMBIE_ATTACK_DAMAGE = 1; 
-        const SKELETON_ATTACK_DAMAGE = 1;
-        const STONE_SWORD_DAMAGE = 3; 
-        const IRON_SWORD_DAMAGE = 5;  
-        const DIAMOND_SWORD_DAMAGE = 10;
+        const SKELETON_BOW_DAMAGE = 1;
+        
+        // --- TOOL/WEAPON DATA (Damage/Strength) ---
+        const TOOL_DATA = {
+            'bare_hands': { type: 'none', strength: 0, damage: 1 },
+            'wooden_pickaxe': { type: 'pickaxe', strength: 1, mat: 'wood', damage: 1, name: 'Drewniany Kilof' },
+            'stone_pickaxe': { type: 'pickaxe', strength: 2, mat: 'stone', damage: 1, name: 'Kamienny Kilof' },
+            'iron_pickaxe': { type: 'pickaxe', strength: 3, mat: 'iron', damage: 1, name: 'Żelazny Kilof' },
+            'diamond_pickaxe': { type: 'pickaxe', strength: 5, mat: 'diamond', damage: 1, name: 'Diamentowy Kilof' },
+            'wooden_axe': { type: 'axe', strength: 1, mat: 'wood', damage: 1, name: 'Drewniana Siekiera' }, 
+            'diamond_axe': { type: 'axe', strength: 5, mat: 'diamond', damage: 1, name: 'Diamentowa Siekiera' },
+            'stone_sword': { type: 'sword', strength: 1, mat: 'stone', damage: 3, name: 'Kamienny Miecz' },
+            'iron_sword': { type: 'sword', strength: 1, mat: 'iron', damage: 5, name: 'Żelazny Miecz' },
+            'poison_sword': { type: 'sword', strength: 1, mat: 'poison', damage: 5, name: 'Zatruty Miecz' },
+            'diamond_sword': { type: 'sword', strength: 1, mat: 'diamond', damage: 10, name: 'Diamentowy Miecz' },
+            'bow': { type: 'bow', strength: 1, mat: 'bow', damage: 1, name: 'Łuk' },
+            'armor': { type: 'armor', name: 'Zbroja Skórzana' },
+            'iron_armor': { type: 'armor', name: 'Żelazna Zbroja' },
+        };
         const REGULAR_ARROW_DAMAGE = 5; 
         const EXPLOSIVE_ARROW_DAMAGE = 10; 
+        // -----------------------------------------
+
+        // SPELL CONSTANTS
+        const FIRE_AURA_DURATION = 20000; 
+        const FIRE_AURA_DAMAGE_PER_SEC = 2;
+        const FIRE_AURA_RANGE = 20; 
+        const FIRE_AURA_RANGE_SQ = FIRE_AURA_RANGE * FIRE_AURA_RANGE; 
+        const REPULSION_CAST_RANGE = 45;
+        const REPULSION_PUSH_FORCE = 50; 
+        const TELEPORT_DISTANCE = 100; // Teleportuje 100 bloków do przodu
+        const TRAP_DURATION = 10000; 
+
+        let isFireAuraActive = false;
+        let fireAuraEndTime = 0;
+        let lastAuraDamageTime = 0;
+        const activeTraps = []; 
 
         const MAX_COWS = 15; const MAX_MOBS = 10; const MAX_SPIDERS = 5; const MAX_SKELETONS = 5;
         const SKELETON_RANGE = 50; 
@@ -431,10 +591,31 @@
             arrows: 0, explosiveArrows: 0, poisonArrows: 0, 
             saplings: 0, housePlans: 0, fencePlans: 0, planks: 0,
             health: 100, hunger: 100,
-            hasWoodenPickaxe: false, hasStonePickaxe: false, hasIronPickaxe: false, hasDiamondPickaxe: false,
-            hasStoneSword: false, hasIronSword: false, hasPoisonSword: false, hasDiamondSword: false,
-            hasDiamondAxe: false, hasBow: false, hasArmor: false, hasIronArmor: false,
-            equippedPlan: null, equippedArrow: null
+            
+            // NOWE ZASOBY I ZWOJE
+            coal: 0, 
+            blackInk: 0,
+            repulsionScrolls: 0, 
+            fireAuraScrolls: 0,
+            trapScrolls: 0, 
+            teleportScrolls: 0, 
+            
+            // WŁASNOŚĆ ZWOJÓW (tylko jeden raz)
+            repulsionScroll_owned: false,
+            fireAuraScroll_owned: false,
+            trapScroll_owned: false,
+            teleportScroll_owned: false,
+            
+            // WŁASNOŚĆ NARZĘDZI/PRZEDMIOTÓW 
+            wooden_pickaxe_owned: false, stone_pickaxe_owned: false, iron_pickaxe_owned: false, diamond_pickaxe_owned: false,
+            stone_sword_owned: false, iron_sword_owned: false, poison_sword_owned: false, diamond_sword_owned: false,
+            wooden_axe_owned: true, 
+            diamond_axe_owned: false, bow_owned: false, armor_owned: false, iron_armor_owned: false,
+            
+            // AKTUALNIE WYPOSAŻONY PRZEDMIOT
+            equippedTool: 'wooden_axe', 
+            
+            equippedPlan: null, equippedArrow: null, equippedSpell: null 
         };
 
         let player = JSON.parse(JSON.stringify(INITIAL_PLAYER_STATE)); 
@@ -466,6 +647,10 @@
         const slotArrowText = document.getElementById('slot-arrow-text');
         const slotPlanDiv = document.getElementById('slot-plan');
         const slotArrowDiv = document.getElementById('slot-arrow');
+        const slotSpellDiv = document.getElementById('slot-spell'); 
+        const slotSpellText = document.getElementById('slot-spell-text'); 
+        const itemsDisplay = document.getElementById('items-display'); 
+        const currentToolDisplay = document.getElementById('current-tool-display');
         
         let lastMobSpawnTime = 0, lastCowSpawnTime = 0, lastSulphurSpawnTime = 0, lastSpiderSpawnTime = 0, lastSkeletonSpawnTime = 0;
         
@@ -474,8 +659,7 @@
         init();
         animate();
         
-        function getRandomDropAmount() { return Math.floor(Math.random() * 3) + 1; }
-
+        
         function init() {
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, VIEW_DISTANCE);
             camera.position.y = PLAYER_HEIGHT; 
@@ -500,18 +684,27 @@
             scene.add(floor);
             objects.push(floor); 
 
-            generateTrees(60);
+            generateTrees(60); 
             generateCaves(8);
+            generateCoalOres(10); 
             generateDiamondOres(5);
             generateStringBlocks(20); 
             generateSulphurBlocks(15); 
-            for(let i = 0; i < 5; i++) createCow(Math.random() * 400 - 200, Math.random() * 400 - 200);
+            for(let i = 0; i < 5; i++) createCow(Math.random() * 400 - 200, Math.random() * 400 - 200); 
 
             raycaster = new THREE.Raycaster();
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
+            
+            // PRÓBA WŁĄCZENIA MUZYKI W TLE
+            const music = document.getElementById('background-music');
+            if(music) {
+                // Ta linia może wymagać interakcji użytkownika do zadziałania
+                music.volume = 0.5;
+                // music.play().catch(e => console.log("Music auto-play failed. User interaction needed.", e)); 
+            }
 
             const euler = new THREE.Euler(0, 0, 0, 'YXZ');
             document.addEventListener('mousemove', function(event) {
@@ -528,6 +721,10 @@
 
             blocker.addEventListener('click', function() {
                 if (isGameOver) resetGame();
+                
+                // Uruchomienie muzyki po kliknięciu gracza
+                if (music) music.play().catch(e => console.log("Music start failed.", e));
+                
                 document.body.requestPointerLock();
             });
 
@@ -550,26 +747,46 @@
             bind('btn-planks', craftPlanks);
             bind('btn-house-plans', craftHousePlans);
             bind('btn-fence-plans', craftFencePlans);
-            bind('btn-wood-pick', () => craftTool('pick', 'wood'));
-            bind('btn-stone-pick', () => craftTool('pick', 'stone'));
-            bind('btn-iron-pick', () => craftTool('pick', 'iron'));
-            bind('btn-diamond-pick', () => craftTool('pick', 'diamond'));
-            bind('btn-diamond-axe', () => craftTool('axe', 'diamond'));
-            bind('btn-stone-sword', () => craftTool('sword', 'stone'));
-            bind('btn-iron-sword', () => craftTool('sword', 'iron'));
-            bind('btn-diamond-sword', () => craftTool('sword', 'diamond'));
+            bind('btn-wood-pick', () => craftTool('wooden_pickaxe'));
+            bind('btn-stone-pick', () => craftTool('stone_pickaxe'));
+            bind('btn-iron-pick', () => craftTool('iron_pickaxe'));
+            bind('btn-diamond-pick', () => craftTool('diamond_pickaxe'));
+            bind('btn-diamond-axe', () => craftTool('diamond_axe'));
+            bind('btn-stone-sword', () => craftTool('stone_sword'));
+            bind('btn-iron-sword', () => craftTool('iron_sword'));
             bind('btn-poison-sword', craftPoisonSword);
+            bind('btn-diamond-sword', () => craftTool('diamond_sword'));
             bind('btn-bow', craftBow);
             bind('btn-arrows', craftArrows);
             bind('btn-explosive-arrows', craftExplosiveArrows);
             bind('btn-poison-arrow', craftPoisonArrow);
-            bind('btn-armor', craftArmor);
-            bind('btn-iron-armor', craftIronArmor);
+            bind('btn-armor', () => craftArmor('armor'));
+            bind('btn-iron-armor', () => craftArmor('iron_armor'));
+
+            // NOWE ZAKLĘCIA I ATRAMENT
+            bind('btn-black-ink', craftBlackInk);
+            bind('btn-repulsion-scroll', craftRepulsionScroll);
+            bind('btn-fire-aura-scroll', craftFireAuraScroll);
+            bind('btn-trap-scroll', craftTrapScroll); 
+            bind('btn-teleport-scroll', craftTeleportScroll); 
 
             updateHUD();
             window.addEventListener('resize', onWindowResize);
         }
-
+        
+        function generateCoalOres(count) {
+            for (let i = 0; i < count; i++) {
+                const cx = Math.random() * 300 - 150; 
+                const cz = Math.random() * 300 - 150;
+                for (let j = 0; j < 5; j++) {
+                    const m = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.5, 2.5), new THREE.MeshLambertMaterial({ color: 0x333333 })); // Dark grey/black
+                    m.position.set(cx + (Math.random()-0.5)*15, (Math.random()*8)-6, cz + (Math.random()-0.5)*15);
+                    m.userData = { type: 'coal_ore', originalColor: 0x333333 };
+                    scene.add(m); objects.push(m);
+                }
+            }
+        }
+        
         function toggleCrafting() {
             if (isGameOver) return; 
             isCraftingOpen = !isCraftingOpen;
@@ -591,7 +808,7 @@
                 if (isCraftingOpen) toggleCrafting(); 
                 document.exitPointerLock();
                 inventoryMenu.style.display = 'block';
-                updateInventoryDisplay();
+                updateInventoryDisplay(); // WZYWA FUNKCJĘ
             } else {
                 inventoryMenu.style.display = 'none';
                 document.body.requestPointerLock();
@@ -632,15 +849,21 @@
             projectiles.forEach(proj => scene.remove(proj)); projectiles.length = 0;
             gasClouds.forEach(c => scene.remove(c.mesh)); gasClouds.length = 0;
             safeZones = [];
+            activeTraps.length = 0; // RESET PUŁAPEK
 
+            // Reset aury, jeśli aktywna
+            isFireAuraActive = false;
+            const auraMesh = scene.getObjectByName('fireAura');
+            if(auraMesh) scene.remove(auraMesh);
+            
             player = JSON.parse(JSON.stringify(INITIAL_PLAYER_STATE));
             
-            generateTrees(60); generateCaves(8); generateDiamondOres(5); generateStringBlocks(20); generateSulphurBlocks(15);
+            generateTrees(60); generateCaves(8); generateCoalOres(10); generateDiamondOres(5); generateStringBlocks(20); generateSulphurBlocks(15);
             for(let i = 0; i < 5; i++) createCow(Math.random() * 400 - 200, Math.random() * 400 - 200);
 
             isGameOver = false; slowEndTime = 0; slowOverlay.style.display = 'none';
             blockerTitle.innerText = "Symulator Craftingu 3D";
-            blockerMessage.innerHTML = "Kliknij, aby zagrać";
+            blockerMessage.innerHTML = "Wykop niebieski blok, by odzyskać rzeczy.<br>Kliknij, by zacząć od nowa.";
             camera.position.set(0, PLAYER_HEIGHT, 0); velocity.set(0, 0, 0);
             updateHUD();
         }
@@ -658,18 +881,28 @@
             }
         }
         
+        // Zaktualizowana funkcja dla bardziej realistycznych drzew
         function generateTrees(count) {
             const scale = 1.5;
             const trunkHeight = PLAYER_HEIGHT * scale;
-            const trunkGeom = new THREE.CylinderGeometry(0.8 * scale, 1.0 * scale, trunkHeight, 8);
-            const leavesGeom = new THREE.BoxGeometry(5 * scale, 5 * scale, 5 * scale);
+            // Pień: lekko zwężający się cylinder (mniej blokowy)
+            const trunkGeom = new THREE.CylinderGeometry(0.5 * scale, 1.0 * scale, trunkHeight, 8); 
+            
+            // Liście: Kształt stożka dla bardziej naturalnego wyglądu
+            const leavesGeom = new THREE.ConeGeometry(4 * scale, 6 * scale, 16); 
+            
             for (let i = 0; i < count; i++) {
                 const x = Math.random() * 400 - 200; const z = Math.random() * 400 - 200;
+                
                 const trunk = new THREE.Mesh(trunkGeom, new THREE.MeshLambertMaterial({ color: 0x8B4513 }));
-                trunk.position.set(x, trunkHeight / 2, z); trunk.userData = { type: 'wood', originalColor: 0x8B4513 };
+                trunk.position.set(x, trunkHeight / 2, z); 
+                trunk.userData = { type: 'wood', originalColor: 0x8B4513 };
                 scene.add(trunk); objects.push(trunk);
-                const leaves = new THREE.Mesh(leavesGeom, new THREE.MeshLambertMaterial({ color: 0x2E8B57 }));
-                leaves.position.set(x, trunkHeight + (2.5 * scale) - (1.5 * scale), z); scene.add(leaves);
+                
+                const leaves = new THREE.Mesh(leavesGeom, new THREE.MeshLambertMaterial({ color: 0x2E8B22 }));
+                leaves.position.set(x, trunkHeight + (2 * scale), z); 
+                scene.add(leaves);
+                
                 trunk.userData.leaves = leaves; 
             }
         }
@@ -707,14 +940,58 @@
             scene.add(block); objects.push(block);
         }
 
-        // --- BRAKUJĄCE FUNKCJE TWORZENIA MOBÓW ---
+        // --- MOB GENERATION ---
         function createCow(x, z) {
             const g = new THREE.Group();
-            const b = new THREE.Mesh(new THREE.BoxGeometry(3, 5, 4.5), new THREE.MeshLambertMaterial({ color: 0x654321 })); b.position.y = 2.5; g.add(b);
-            const h1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1, 0.3), new THREE.MeshLambertMaterial({ color: 0xFFD700 })); h1.position.set(-1.4, 5, 2.1); g.add(h1);
-            const h2 = h1.clone(); h2.position.set(1.4, 5, 2.1); g.add(h2);
-            g.position.set(x, 0, z); g.rotation.y = Math.random() * Math.PI * 2;
-            g.userData = { type: 'cow', originalColor: 0x654321, health: 1, walkDirection: new THREE.Vector3(Math.random()-0.5,0,Math.random()-0.5).normalize(), walkSpeed: 10, nextTurnTime: performance.now()+2000 };
+            g.position.set(x, 0, z);
+            g.rotation.y = Math.random() * Math.PI * 2;
+            
+            const brownMat = new THREE.MeshLambertMaterial({ color: 0x654321 }); 
+            const whiteMat = new THREE.MeshLambertMaterial({ color: 0xFFFFFF }); 
+            const hornMat = new THREE.MeshLambertMaterial({ color: 0xFFD700 }); 
+
+            const bodyGeom = new THREE.CylinderGeometry(1.2, 1.5, 3.5, 8); 
+            const body = new THREE.Mesh(bodyGeom, brownMat);
+            body.rotation.z = Math.PI / 2; 
+            body.position.y = 2.5;
+            body.position.z = 0;
+            g.add(body);
+            
+            const headGeom = new THREE.SphereGeometry(1.0, 8, 8);
+            const head = new THREE.Mesh(headGeom, whiteMat);
+            head.position.set(1.9, 3.0, 0); 
+            g.add(head);
+
+            const hornGeom = new THREE.ConeGeometry(0.15, 0.6, 6);
+            const horn1 = new THREE.Mesh(hornGeom, hornMat);
+            horn1.position.set(2.5, 3.5, 0.4);
+            horn1.rotation.x = Math.PI / 2; 
+            g.add(horn1);
+            const horn2 = horn1.clone();
+            horn2.position.set(2.5, 3.5, -0.4);
+            g.add(horn2);
+
+            const legGeom = new THREE.CylinderGeometry(0.3, 0.3, 2.5, 8);
+            const legPositions = [
+                {x: 0.8, z: 1.0}, {x: -0.8, z: 1.0}, 
+                {x: 0.8, z: -1.0}, {x: -0.8, z: -1.0}
+            ];
+            legPositions.forEach(pos => {
+                const leg = new THREE.Mesh(legGeom, hornMat);
+                leg.position.set(pos.x, 1.25, pos.z);
+                g.add(leg);
+            });
+
+            g.userData = { 
+                type: 'cow', 
+                originalColor: 0x654321, 
+                health: 1, 
+                walkDirection: new THREE.Vector3(Math.random()-0.5,0,Math.random()-0.5).normalize(), 
+                walkSpeed: 10, 
+                nextTurnTime: performance.now()+2000,
+                body: body, head: head,
+                velocity: new THREE.Vector3(0, 0, 0), isTrapped: false 
+            };
             scene.add(g); mobs.push(g);
         }
 
@@ -722,14 +999,14 @@
             const g = new THREE.Group();
             const h = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.5, 2.5), new THREE.MeshLambertMaterial({ color: 0x006400 })); h.position.y = 7.5;
             const b = new THREE.Mesh(new THREE.BoxGeometry(2.5, 4.5, 1.5), new THREE.MeshLambertMaterial({ color: 0x228B22 })); b.position.y = 4;
-            g.add(h); g.add(b); g.position.set(x, 0, z); g.userData = { type: 'zombie', originalColor: 0x228B22, health: 10, walkSpeed: 15, attackRange: 2, attackCooldown: 1000, lastAttackTime: 0 };
+            g.add(h); g.add(b); g.position.set(x, 0, z); g.userData = { type: 'zombie', originalColor: 0x228B22, health: 10, walkSpeed: 15, attackRange: 2, attackCooldown: 1000, lastAttackTime: 0, velocity: new THREE.Vector3(0, 0, 0), isTrapped: false };
             scene.add(g); mobs.push(g);
         }
 
         function createSpider(x, z) {
             const g = new THREE.Group();
             const b = new THREE.Mesh(new THREE.SphereGeometry(2, 8, 8), new THREE.MeshLambertMaterial({ color: 0x111111 })); b.position.y = 2; g.add(b);
-            g.position.set(x, 0, z); g.userData = { type: 'spider', originalColor: 0x111111, health: 2, walkSpeed: 18, lastAttackTime: 0, attackCooldown: 5000 };
+            g.position.set(x, 0, z); g.userData = { type: 'spider', originalColor: 0x111111, health: 2, walkSpeed: 18, lastAttackTime: 0, attackCooldown: 5000, velocity: new THREE.Vector3(0, 0, 0), isTrapped: false };
             scene.add(g); mobs.push(g);
         }
 
@@ -740,14 +1017,77 @@
             const b = new THREE.Mesh(new THREE.BoxGeometry(1.5, 4, 1), mat); b.position.y = 5;
             const bow = new THREE.Mesh(new THREE.BoxGeometry(0.5, 4, 0.5), new THREE.MeshLambertMaterial({ color: 0x5C4033 })); bow.position.set(1.5, 6, 1);
             g.add(h); g.add(b); g.add(bow);
-            g.position.set(x, 0, z); g.userData = { type: 'skeleton', originalColor: 0xDDDDDD, health: 20, walkSpeed: 12, attackRange: SKELETON_RANGE, lastAttackTime: 0, attackCooldown: 3000 };
+            g.position.set(x, 0, z); g.userData = { type: 'skeleton', originalColor: 0xDDDDDD, health: 20, walkSpeed: 12, attackRange: SKELETON_RANGE, lastAttackTime: 0, velocity: new THREE.Vector3(0, 0, 0), isTrapped: false };
             scene.add(g); mobs.push(g);
         }
+        
+        function createSwordSkeleton(x, z) {
+            const g = new THREE.Group();
+            const mat = new THREE.MeshLambertMaterial({ color: 0xDDDDDD });
+            const h = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), mat); h.position.y = 8;
+            const b = new THREE.Mesh(new THREE.BoxGeometry(1.5, 4, 1), mat); b.position.y = 5;
+            
+            // Sword in outstretched hand
+            const swordHilt = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshLambertMaterial({ color: 0x8B4513 }));
+            const swordBlade = new THREE.Mesh(new THREE.BoxGeometry(0.2, 5, 0.2), new THREE.MeshLambertMaterial({ color: 0xD3D3D3 }));
+            swordBlade.position.y = 2.5;
+            
+            const swordGroup = new THREE.Group();
+            swordGroup.add(swordHilt);
+            swordGroup.add(swordBlade);
+            
+            // Position sword (outstretched)
+            swordGroup.position.set(0.5, 6, 1.5); 
+            swordGroup.rotation.x = -Math.PI / 2; 
+
+            g.add(h); g.add(b); g.add(swordGroup);
+            
+            g.position.set(x, 0, z); 
+            g.userData = { 
+                type: 'sword_skeleton', 
+                originalColor: 0xDDDDDD, 
+                health: 25, 
+                walkSpeed: 15, 
+                attackRange: 2.5, 
+                attackCooldown: 1000, 
+                lastAttackTime: 0, 
+                velocity: new THREE.Vector3(0, 0, 0), 
+                isTrapped: false,
+                damage: 10, // 10 damage
+                hungerAuraRange: 10, // 10 blocks
+            };
+            scene.add(g); mobs.push(g);
+        }
+
+        // Funkcja do pobierania statystyk wyposażonego narzędzia
+        function getEquippedTool() {
+            return TOOL_DATA[player.equippedTool] || TOOL_DATA['bare_hands'];
+        }
+        
+        // NOWA FUNKCJA: Znajduje najlepsze posiadane narzędzie danego typu
+        function getBestTool(type) {
+            const tiers = {
+                'pickaxe': ['diamond_pickaxe', 'iron_pickaxe', 'stone_pickaxe', 'wooden_pickaxe'],
+                'axe': ['diamond_axe', 'wooden_axe'], 
+                'sword': ['diamond_sword', 'poison_sword', 'iron_sword', 'stone_sword'],
+            };
+            
+            if (!tiers[type]) return null;
+
+            for (const id of tiers[type]) {
+                if (player[id + '_owned']) {
+                    return id;
+                }
+            }
+            return null; // Brak narzędzia tego typu
+        }
+
 
         // --- INTERAKCJE ---
         function handleHit(object) {
             if (!object) return;
             const type = object.userData.type;
+            const equippedTool = getEquippedTool();
             
             if (object.material && object.userData.originalColor) {
                 object.material.color.setHex(0xffffff); setTimeout(() => object.material.color.setHex(object.userData.originalColor), 100);
@@ -757,69 +1097,100 @@
             }
 
             if (type === 'wood') {
-                let amount = getRandomDropAmount();
-                if(player.hasDiamondAxe) amount = 5;
+                if (equippedTool.type !== 'axe') {
+                    showMessage("Wymagana Siekiera!", "red");
+                    return;
+                }
+                
+                let amount = 1; 
+                if (equippedTool.mat === 'wood') {
+                    amount = getRandomDropAmount(); 
+                } else if (equippedTool.mat === 'diamond') {
+                    amount = 5; 
+                } 
+                
                 player.wood += amount;
                 if(Math.random() < 0.20) { player.saplings++; showMessage(`+${amount} Drewno, +SADZONKA!`, "lightgreen"); }
                 else showMessage(`+${amount} Drewno`, "#4CAF50");
                 scene.remove(object); if(object.userData.leaves) scene.remove(object.userData.leaves); objects.splice(objects.indexOf(object), 1);
             }
             else if (type === 'stone') {
-                if(player.hasWoodenPickaxe || player.hasStonePickaxe || player.hasIronPickaxe || player.hasDiamondPickaxe) {
-                    let amount = player.hasDiamondPickaxe ? 5 : getRandomDropAmount();
-                    player.stone += amount; showMessage(`+${amount} Kamień`, "#808080"); scene.remove(object); objects.splice(objects.indexOf(object), 1);
-                } else showMessage("Wymagany kilof!", "red");
+                const hasAnyPickaxe = equippedTool.type === 'pickaxe';
+                
+                if(hasAnyPickaxe) {
+                    let amount;
+                    if (equippedTool.mat === 'diamond') amount = 5;
+                    else if (equippedTool.mat === 'stone' || equippedTool.mat === 'iron') amount = getRandomDropAmount(); 
+                    else if (equippedTool.mat === 'wood') amount = 1; 
+                    else amount = 0;
+
+                    player.stone += amount; 
+                    showMessage(`+${amount} Kamień`, "#808080"); 
+                    scene.remove(object); 
+                    objects.splice(objects.indexOf(object), 1);
+                } else showMessage("Wymagany Kilof!", "red");
             }
             else if (type === 'iron_ore') {
-                if(player.hasStonePickaxe || player.hasIronPickaxe || player.hasDiamondPickaxe) {
-                    let amount = player.hasDiamondPickaxe ? 5 : getRandomDropAmount();
+                if(equippedTool.mat === 'stone' || equippedTool.mat === 'iron' || equippedTool.mat === 'diamond') {
+                    let amount = equippedTool.mat === 'diamond' ? 5 : getRandomDropAmount();
                     player.iron += amount; showMessage(`+${amount} Żelazo`, "#D3D3D3"); scene.remove(object); objects.splice(objects.indexOf(object), 1);
                 } else showMessage("Wymagany Kamienny Kilof!", "red");
             }
+            else if (type === 'coal_ore') { 
+                if(equippedTool.type === 'pickaxe' && equippedTool.mat !== 'wood') {
+                    let amount = equippedTool.mat === 'diamond' ? 5 : getRandomDropAmount();
+                    player.coal += amount; showMessage(`+${amount} Węgiel`, "darkgray"); scene.remove(object); objects.splice(objects.indexOf(object), 1);
+                } else showMessage("Wymagany Kamienny Kilof!", "red");
+            }
             else if (type === 'diamond_ore') {
-                if(player.hasIronPickaxe || player.hasDiamondPickaxe) {
-                    let amount = player.hasDiamondPickaxe ? 5 : getRandomDropAmount();
+                if(equippedTool.mat === 'iron' || equippedTool.mat === 'diamond') {
+                    let amount = equippedTool.mat === 'diamond' ? 5 : getRandomDropAmount();
                     player.diamonds += amount; showMessage(`+${amount} DIAMENTY!`, "#9370DB"); scene.remove(object); objects.splice(objects.indexOf(object), 1);
                 } else showMessage("Wymagany Żelazny Kilof!", "red");
             }
             else if (type === 'sulphur_ore') {
-                if(player.hasWoodenPickaxe || player.hasStonePickaxe || player.hasIronPickaxe || player.hasDiamondPickaxe) {
-                    let amount = player.hasDiamondPickaxe ? 5 : getRandomDropAmount();
+                if(equippedTool.type === 'pickaxe') {
+                    let amount = equippedTool.mat === 'diamond' ? 5 : getRandomDropAmount();
                     player.sulphur += amount; showMessage(`+${amount} Siarka`, "#FFFF00"); scene.remove(object); objects.splice(objects.indexOf(object), 1);
                 } else showMessage("Wymagany kilof!", "red");
             }
             else if (type === 'string_block') {
-                if (player.hasStoneSword || player.hasIronSword || player.hasPoisonSword || player.hasDiamondSword) {
+                if (equippedTool.type === 'sword') {
                     let amount = getRandomDropAmount();
                     player.string += amount;
                     showMessage(`+${amount} Nić`, "white");
                     scene.remove(object);
                     objects.splice(objects.indexOf(object), 1);
                 } else {
-                    showMessage("Wymagany miecz!", "red");
+                    showMessage("Wymagany Miecz!", "red");
                 }
             }
             else if (type === 'death_block') {
                 const loot = object.userData.loot;
-                Object.keys(loot).forEach(k => { if(player.hasOwnProperty(k)) player[k] += (typeof loot[k] === 'number' ? loot[k] : 0); });
-                ['hasWoodenPickaxe','hasStonePickaxe','hasIronPickaxe','hasDiamondPickaxe','hasDiamondAxe','hasStoneSword','hasIronSword','hasPoisonSword','hasDiamondSword','hasBow','hasArmor','hasIronArmor'].forEach(k => {
-                    if(loot[k]) player[k] = true;
+                Object.keys(loot).forEach(k => { 
+                    if (player.hasOwnProperty(k)) {
+                        if(typeof player[k] === 'number') player[k] += (typeof loot[k] === 'number' ? loot[k] : 0); 
+                        else if (k.endsWith('_owned') && loot[k] === true) player[k] = true;
+                    }
                 });
                 showMessage("Odzyskano ekwipunek!", "blue");
                 scene.remove(object); objects.splice(objects.indexOf(object), 1);
             }
-            else if (type === 'cow' || type === 'zombie' || type === 'spider' || type === 'skeleton') {
-                let dmg = 1;
-                if (player.hasDiamondSword) dmg = DIAMOND_SWORD_DAMAGE;
-                else if (player.hasPoisonSword) dmg = IRON_SWORD_DAMAGE;
-                else if (player.hasIronSword) dmg = IRON_SWORD_DAMAGE;
-                else if (player.hasStoneSword) dmg = STONE_SWORD_DAMAGE;
+            else if (type === 'cow' || type === 'zombie' || type === 'spider' || type === 'skeleton' || type === 'sword_skeleton') {
+                let dmg = equippedTool.damage;
 
+                if (equippedTool.type !== 'sword' && equippedTool.type !== 'none') {
+                    showMessage("Wyposaż Miecz!", "red");
+                    return;
+                }
+                
                 if (dmg === 1 && type !== 'cow') { showMessage("Użyj miecza!", "red"); return; }
+                if (dmg === 1 && type === 'cow') dmg = 1; 
 
                 object.userData.health -= dmg;
                 
-                if (player.hasPoisonSword) { 
+                const isPoisoned = equippedTool.mat === 'poison';
+                if (isPoisoned) { 
                     object.userData.slowEndTime = performance.now() + 3000; 
                     showMessage(`Trafienie (Trucizna)! -${dmg} HP`, "lightgreen"); 
                 } else { 
@@ -836,11 +1207,21 @@
             if (type === 'cow') { player.meat++; player.leather++; showMessage("+1 Mięso, +1 Skóra", "#ffcc00"); }
             else if (type === 'zombie') { player.leather += getRandomDropAmount(); showMessage(`Zabito Zombi!`, "lightgreen"); }
             else if (type === 'spider') { 
-                if (player.hasDiamondSword) { player.venom += 3; showMessage("Zabito Pająka! +3 Jady (Diamentowy Miecz)", "purple"); }
+                if (player.diamond_sword_owned) { player.venom += 3; showMessage("Zabito Pająka! +3 Jady (Diamentowy Miecz)", "purple"); }
                 else { player.venom++; showMessage(`Zabito Pająka! +1 Jad`, "purple"); }
             }
-            else if (type === 'skeleton') { player.arrows += 3; showMessage("Zabito Szkieleta! +3 Strzały", "white"); }
-            scene.remove(object); mobs.splice(mobs.indexOf(object), 1); updateHUD();
+            else if (type === 'skeleton' || type === 'sword_skeleton') { player.arrows += 3; showMessage("Zabito Szkieleta! +3 Strzały", "white"); }
+            scene.remove(object); 
+            mobs.splice(mobs.indexOf(object), 1); 
+            
+            for(let i = activeTraps.length - 1; i >= 0; i--) {
+                if (activeTraps[i].mob === object) {
+                    scene.remove(activeTraps[i].cage);
+                    activeTraps.splice(i, 1);
+                }
+            }
+
+            updateHUD();
         }
 
         function onKeyDown(event) {
@@ -859,17 +1240,71 @@
                     if(player.saplings > 0) { 
                         player.saplings--; 
                         const x = camera.position.x; const z = camera.position.z;
-                        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.5,15,8), new THREE.MeshLambertMaterial({color:0x8B4513}));
-                        trunk.position.set(x,7.5,z); trunk.userData={type:'wood',originalColor:0x8B4513}; scene.add(trunk); objects.push(trunk);
-                        const leaves = new THREE.Mesh(new THREE.BoxGeometry(7.5,7.5,7.5), new THREE.MeshLambertMaterial({color:0x2E8B57}));
-                        leaves.position.set(x,15,z); scene.add(leaves); trunk.userData.leaves=leaves;
+                        const trunkHeight = PLAYER_HEIGHT * 1.5;
+                        const leavesScale = 1.5;
+
+                        const trunkGeom = new THREE.CylinderGeometry(0.5 * leavesScale, 1.0 * leavesScale, trunkHeight, 8);
+                        const trunk = new THREE.Mesh(trunkGeom, new THREE.MeshLambertMaterial({color:0x8B4513}));
+                        trunk.position.set(x,trunkHeight/2,z); trunk.userData={type:'wood',originalColor:0x8B4513}; scene.add(trunk); objects.push(trunk);
+
+                        const leavesGeom = new THREE.ConeGeometry(4 * leavesScale, 6 * leavesScale, 16);
+                        const leaves = new THREE.Mesh(leavesGeom, new THREE.MeshLambertMaterial({color:0x2E8B22}));
+                        leaves.position.set(x, trunkHeight + (2 * leavesScale), z); scene.add(leaves); trunk.userData.leaves=leaves;
+
                         updateHUD(); showMessage("Zasadzono!", "lightgreen");
                     } else showMessage("Brak sadzonek!", "red");
                     break;
                 case 'KeyQ': 
-                    if(player.hasBow && player.equippedArrow) {
+                    if(player.bow_owned && player.equippedTool === 'bow' && player.equippedArrow) {
                         isChargingBowQ = true; bowChargeStartTime = performance.now(); bowChargeContainer.style.display = 'block';
-                    } else if (player.hasBow) showMessage("Wybierz strzały (I)!", "yellow");
+                    } else if (player.equippedTool !== 'bow') showMessage("Wyposaż łuk (I)!", "yellow");
+                    else if (!player.equippedArrow) showMessage("Wybierz strzały (I)!", "yellow");
+                    break;
+                
+                case 'Digit1': 
+                    const pickaxeId = getBestTool('pickaxe');
+                    if (pickaxeId) equipTool(pickaxeId);
+                    else showMessage("Brak Kilofa!", "yellow");
+                    break;
+                case 'Digit2': 
+                    const axeId = getBestTool('axe');
+                    if (axeId) equipTool(axeId);
+                    else showMessage("Brak Siekiery!", "yellow");
+                    break;
+                case 'Digit3': 
+                    const swordId = getBestTool('sword');
+                    if (swordId) equipTool(swordId);
+                    else showMessage("Brak Miecza!", "yellow");
+                    break;
+
+                case 'KeyF': 
+                    if (player.equippedSpell && document.pointerLockElement === document.body) {
+                        const time = performance.now();
+                        if (time < lastSpellTime + SPELL_COOLDOWN) {
+                            const remaining = Math.ceil((lastSpellTime + SPELL_COOLDOWN - time) / 1000);
+                            showMessage(`Oczekiwanie na zaklęcie (${remaining}s)`, "cyan");
+                            return;
+                        }
+
+                        let used = false;
+                        
+                        // Check if the equipped spell resource is available (they are reusable)
+                        if (player.equippedSpell === 'repulsion' && player.repulsionScrolls > 0) { 
+                            castRepulsionSpell(); used = true;
+                        } else if (player.equippedSpell === 'fireAura' && player.fireAuraScrolls > 0) { 
+                            castFireAuraSpell(time); used = true;
+                        } else if (player.equippedSpell === 'trap' && player.trapScrolls > 0) { 
+                            castTrapSpell(); used = true;
+                        } else if (player.equippedSpell === 'teleport' && player.teleportScrolls > 0) { 
+                            castTeleportSpell(); used = true;
+                        } 
+                        
+                        if (used) {
+                            lastSpellTime = time; // Set cooldown
+                        } else {
+                            showMessage("Brak zwojów!", "yellow");
+                        }
+                    }
                     break;
             }
         }
@@ -885,8 +1320,6 @@
             }
         }
 
-        // --- BRAKUJĄCE FUNKCJE (PRZYWRÓCONE) ---
-
         function onMouseDown(event) {
             if (isGameOver || document.pointerLockElement !== document.body) return;
             
@@ -896,7 +1329,6 @@
                 
                 if (intersects.length > 0 && intersects[0].distance < 12) {
                     let target = intersects[0].object;
-                    // Znajdź główny obiekt (grupę moba lub blok)
                     while(target.parent && target.parent.type !== 'Scene' && !target.userData.type) {
                         target = target.parent;
                     }
@@ -919,7 +1351,7 @@
         function onMouseUp(event) {}
 
         function fireArrow() {
-            if (!player.hasBow) return;
+            if (!player.bow_owned || player.equippedTool !== 'bow') return; 
             let arrowType = player.equippedArrow || 'regular'; 
             if (arrowType === 'regular' && player.arrows > 0) player.arrows--;
             else if (arrowType === 'explosive' && player.explosiveArrows > 0) player.explosiveArrows--;
@@ -941,9 +1373,13 @@
         }
 
         function checkSpawns(time) {
-            if (time - lastMobSpawnTime > 10000 && mobs.length < MAX_MOBS) {
-                if (Math.random() < 0.5) createZombie((Math.random()-0.5)*300, (Math.random()-0.5)*300);
-                else createSkeleton((Math.random()-0.5)*300, (Math.random()-0.5)*300);
+            const hasAnyArmor = player.armor_owned || player.iron_armor_owned;
+
+            if (hasAnyArmor && time - lastMobSpawnTime > 10000 && mobs.length < MAX_MOBS) {
+                const r = Math.random();
+                if (r < 0.33) createZombie((Math.random()-0.5)*300, (Math.random()-0.5)*300);
+                else if (r < 0.66) createSkeleton((Math.random()-0.5)*300, (Math.random()-0.5)*300); // Bow skeleton
+                else createSwordSkeleton((Math.random()-0.5)*300, (Math.random()-0.5)*300); // Sword skeleton
                 lastMobSpawnTime = time;
             }
             if (time - lastCowSpawnTime > 15000 && mobs.filter(m => m.userData.type === 'cow').length < MAX_COWS) {
@@ -956,224 +1392,821 @@
             }
         }
 
-        // Funkcje Craftingu i Budowania
+        // --- FUNKCJE CRAFTINGU I HUD ---
         function updateHUD() {
             document.getElementById('health-bar').style.width = player.health + '%';
             document.getElementById('hunger-bar').style.width = player.hunger + '%';
             document.getElementById('health-text').innerText = `Życie: ${Math.ceil(player.health)}%`;
             document.getElementById('hunger-text').innerText = `Głód: ${Math.ceil(player.hunger)}%`;
+
+            // 2. Aktualizacja ZASOBÓW (#hud)
             const hud = document.getElementById('hud');
             hud.innerHTML = `
                 Drewno: ${player.wood} | Kamień: ${player.stone} | Żelazo: ${player.iron}<br>
-                Diamenty: ${player.diamonds} | Siarka: ${player.sulphur} | Nici: ${player.string}<br>
-                Deski: ${player.planks} | Skóra: ${player.leather} | Mięso: ${player.meat}<br>
+                Diamenty: ${player.diamonds} | Węgiel: ${player.coal} | Siarka: ${player.sulphur}<br>
+                Nici: ${player.string} | Atrament: ${player.blackInk} | Deski: ${player.planks}<br>
+                Skóra: ${player.leather} | Mięso: ${player.meat} | Zwoje: ${player.repulsionScrolls + player.fireAuraScrolls + player.trapScrolls + player.teleportScrolls}<br>
                 Strzały: ${player.arrows} | Wyb.: ${player.explosiveArrows} | Tru.: ${player.poisonArrows}
             `;
+            
+            // 3. Aktualizacja PRZEDMIOTÓW (#items-display)
+            let itemsHtml = '';
+            
+            const TOOL_LIST = [
+                { id: 'wooden_pickaxe', icon: '⛏️', className: 'item-wood' },
+                { id: 'stone_pickaxe', icon: '⛏️', className: 'item-stone' },
+                { id: 'iron_pickaxe', icon: '⛏️', className: 'item-iron' },
+                { id: 'diamond_pickaxe', icon: '⛏️', className: 'item-diamond' },
+                { id: 'diamond_axe', icon: '🪓', className: 'item-diamond' },
+                { id: 'wooden_axe', icon: '🪓', className: 'item-wood' }, 
+                { id: 'stone_sword', icon: '🗡️', className: 'item-stone' },
+                { id: 'iron_sword', icon: '🗡️', className: 'item-iron' },
+                { id: 'poison_sword', icon: '🗡️', className: 'item-poison' },
+                { id: 'diamond_sword', icon: '🗡️', className: 'item-diamond' },
+                { id: 'bow', icon: '🏹', className: 'item-bow' },
+                { id: 'iron_armor', icon: '🛡️', className: 'item-armor-iron' },
+                { id: 'armor', icon: '🛡️', className: 'item-armor-base' }, 
+            ];
+            
+            TOOL_LIST.forEach(tool => {
+                const ownedKey = tool.id + '_owned';
+                if (player[ownedKey]) {
+                    const equippedClass = player.equippedTool === tool.id ? ' item-equipped' : '';
+                    itemsHtml += `<div class="item-icon ${tool.className}${equippedClass}">${tool.icon}</div>`;
+                }
+            });
+            
+            itemsDisplay.innerHTML = itemsHtml;
+            
+            currentToolDisplay.innerText = player.equippedTool ? TOOL_DATA[player.equippedTool].name : 'Brak';
+
             updateCraftingButtons();
         }
 
+
         function updateCraftingButtons() {
            const btn = (id, enable) => document.getElementById(id).disabled = !enable;
+
+           // --- Narzędzia/Bronie/Zbroje, które powinny być jednorazowe ---
+           
+           // Kilofy (Logic simplified for brevity, relying on lowerTier removal)
+           const btnWoodPick = document.getElementById('btn-wood-pick');
+           btnWoodPick.disabled = toolOwned('wooden_pickaxe') || toolOwned('stone_pickaxe') || toolOwned('iron_pickaxe') || toolOwned('diamond_pickaxe') || player.wood < 3;
+           const btnStonePick = document.getElementById('btn-stone-pick');
+           btnStonePick.disabled = toolOwned('stone_pickaxe') || toolOwned('iron_pickaxe') || toolOwned('diamond_pickaxe') || player.wood < 2 || player.stone < 1;
+           const btnIronPick = document.getElementById('btn-iron-pick');
+           btnIronPick.disabled = toolOwned('iron_pickaxe') || toolOwned('diamond_pickaxe') || player.wood < 2 || player.iron < 1;
+           const btnDiamondPick = document.getElementById('btn-diamond-pick');
+           btnDiamondPick.disabled = toolOwned('diamond_pickaxe') || player.wood < 2 || player.diamonds < 3;
+           
+           // Siekiera
+           const btnDiamondAxe = document.getElementById('btn-diamond-axe');
+           btnDiamondAxe.disabled = toolOwned('diamond_axe') || player.wood < 2 || player.diamonds < 3;
+
+           // Miecze
+           const btnStoneSword = document.getElementById('btn-stone-sword');
+           btnStoneSword.disabled = toolOwned('stone_sword') || toolOwned('iron_sword') || toolOwned('poison_sword') || toolOwned('diamond_sword') || player.stone < 2 || player.wood < 1;
+           const btnIronSword = document.getElementById('btn-iron-sword');
+           btnIronSword.disabled = toolOwned('iron_sword') || toolOwned('poison_sword') || toolOwned('diamond_sword') || player.iron < 2 || player.wood < 1;
+           const btnPoisonSword = document.getElementById('btn-poison-sword');
+           btnPoisonSword.disabled = toolOwned('poison_sword') || toolOwned('diamond_sword') || !toolOwned('iron_sword') || player.venom < 1;
+           const btnDiamondSword = document.getElementById('btn-diamond-sword');
+           btnDiamondSword.disabled = toolOwned('diamond_sword') || player.wood < 1 || player.diamonds < 2;
+
+           // Łuk
+           const btnBow = document.getElementById('btn-bow');
+           btnBow.disabled = toolOwned('bow') || player.string < 3 || player.wood < 3;
+
+           // Zbroja
+           const btnArmor = document.getElementById('btn-armor');
+           btnArmor.disabled = toolOwned('armor') || toolOwned('iron_armor') || player.leather < 10;
+           const btnIronArmor = document.getElementById('btn-iron-armor');
+           btnIronArmor.disabled = toolOwned('iron_armor') || player.iron < 10;
+           
+           // ZWOJE (crafting tylko raz)
+           btn('btn-black-ink', !player.blackInk && player.coal >= 2 && player.diamonds >= 2);
+           // Ważna zmiana: Sprawdzamy, czy gracz posiada zwoje (value > 0), aby ograniczyć tworzenie do jednego razu, zgodnie z prośbą.
+           btn('btn-repulsion-scroll', player.repulsionScrolls < 1 && player.diamonds >= 4 && player.string >= 10);
+           btn('btn-fire-aura-scroll', player.fireAuraScrolls < 1 && player.blackInk >= 1 && player.string >= 10);
+           btn('btn-trap-scroll', player.trapScrolls < 1 && player.iron >= 5 && player.string >= 10); 
+           btn('btn-teleport-scroll', player.teleportScrolls < 1 && player.diamonds >= 3 && player.coal >= 2); 
+
+
+           // --- Powtarzalny Crafting ---
            btn('btn-planks', player.wood >= 1);
            btn('btn-house-plans', player.wood >= 20 && player.stone >= 20);
            btn('btn-fence-plans', player.planks >= 12);
-           btn('btn-wood-pick', player.wood >= 3);
-           btn('btn-stone-pick', player.wood >= 2 && player.stone >= 1);
-           btn('btn-iron-pick', player.wood >= 2 && player.iron >= 1);
-           btn('btn-diamond-pick', player.wood >= 2 && player.diamonds >= 3);
-           btn('btn-diamond-axe', player.wood >= 2 && player.diamonds >= 3);
-           btn('btn-stone-sword', player.stone >= 2 && player.wood >= 1);
-           btn('btn-iron-sword', player.iron >= 2 && player.wood >= 1);
-           btn('btn-poison-sword', player.hasIronSword && player.venom >= 1);
-           btn('btn-diamond-sword', player.wood >= 1 && player.diamonds >= 2);
-           btn('btn-bow', player.string >= 3 && player.wood >= 3);
            btn('btn-arrows', player.stone >= 1 && player.wood >= 1);
            btn('btn-explosive-arrows', player.arrows >= 1 && player.sulphur >= 1);
            btn('btn-poison-arrow', player.explosiveArrows >= 1 && player.venom >= 1);
-           btn('btn-armor', player.leather >= 10);
-           btn('btn-iron-armor', player.iron >= 10);
+        }
+        
+        // Funkcja pomocnicza do usuwania starszych, niższych przedmiotów
+        function removeLowerTier(type, currentTier) {
+            const tiers = {
+                'pickaxe': ['wooden_pickaxe', 'stone_pickaxe', 'iron_pickaxe', 'diamond_pickaxe'],
+                'axe': ['wooden_axe', 'diamond_axe'], 
+                'sword': ['stone_sword', 'iron_sword', 'poison_sword', 'diamond_sword'],
+            };
+            
+            if (!tiers[type]) return;
+
+            const currentIndex = tiers[type].indexOf(currentTier);
+            if (currentIndex === -1) return;
+
+            for (let i = 0; i < currentIndex; i++) {
+                const lowerId = tiers[type][i];
+                const ownedKey = lowerId + '_owned';
+                if (player[ownedKey]) {
+                    player[ownedKey] = false;
+                    if (player.equippedTool === lowerId) {
+                        player.equippedTool = currentTier;
+                    }
+                    showMessage(`Usunięto: ${TOOL_DATA[lowerId].name}`, "yellow");
+                }
+            }
         }
 
         function craftPlanks() { if(player.wood >= 1) { player.wood--; player.planks += 4; updateHUD(); showMessage("+4 Deski", "lime"); } }
         function craftHousePlans() { if(player.wood >= 20 && player.stone >= 20) { player.wood-=20; player.stone-=20; player.housePlans++; updateHUD(); showMessage("+Plan Domu", "gold"); } }
         function craftFencePlans() { if(player.planks >= 12) { player.planks-=12; player.fencePlans++; updateHUD(); showMessage("+Schemat Płotu", "brown"); } }
         
-        function craftTool(type, mat) {
+        // NOWE FUNKCJE CRAFTINGU Z OGRANICZENIEM
+        function craftBlackInk() {
+            if (!player.blackInk && player.coal >= 2 && player.diamonds >= 2) {
+                player.coal -= 2; player.diamonds -= 2; 
+                player.blackInk++;
+                updateHUD(); showMessage("Stworzono Czarny Atrament!", "black");
+            } else { showMessage("Brak surowców lub już stworzono!", "red"); }
+        }
+
+        function craftRepulsionScroll() {
+            if (player.repulsionScrolls < 1 && player.diamonds >= 4 && player.string >= 10) {
+                player.diamonds -= 4; player.string -= 10; 
+                player.repulsionScrolls++;
+                updateHUD(); showMessage("Stworzono Zwój Odpychania!", "purple");
+            } else { showMessage("Brak surowców lub już stworzono!", "red"); }
+        }
+
+        function craftFireAuraScroll() {
+            if (player.fireAuraScrolls < 1 && player.blackInk >= 1 && player.string >= 10) {
+                player.blackInk--; player.string -= 10; 
+                player.fireAuraScrolls++;
+                updateHUD(); showMessage("Stworzono Zwój Ognistej Aury!", "orange");
+            } else { showMessage("Brak surowców lub już stworzono!", "red"); }
+        }
+        
+        function craftTrapScroll() { 
+            if (player.trapScrolls < 1 && player.iron >= 5 && player.string >= 10) {
+                player.iron -= 5; player.string -= 10; 
+                player.trapScrolls++;
+                updateHUD(); showMessage("Stworzono Zwój Pułapki!", "brown");
+            } else { showMessage("Brak surowców lub już stworzono!", "red"); }
+        }
+        
+        function craftTeleportScroll() { 
+            if (player.teleportScrolls < 1 && player.diamonds >= 3 && player.coal >= 2) {
+                player.diamonds -= 3; player.coal -= 2; 
+                player.teleportScrolls++;
+                updateHUD(); showMessage("Stworzono Zwój Teleportacji!", "indigo");
+            } else { showMessage("Brak surowców lub już stworzono!", "red"); }
+        }
+
+        // --- FUNKCJE CRAFTINGU NARZĘDZI/BRONI/ZBROI ---
+
+        function craftTool(toolId) {
             let costWood = 0, costStone = 0, costIron = 0, costDiam = 0;
-            if(type==='pick') {
+            const data = TOOL_DATA[toolId];
+            const mat = data.mat;
+            const type = data.type;
+            
+            if(type === 'pickaxe') {
                 if(mat==='wood') costWood=3;
                 if(mat==='stone') { costWood=2; costStone=1; }
                 if(mat==='iron') { costWood=2; costIron=1; }
                 if(mat==='diamond') { costWood=2; costDiam=3; }
-            } else if(type==='sword') {
+            } else if(type === 'sword') {
                 if(mat==='stone') { costWood=1; costStone=2; }
                 if(mat==='iron') { costWood=1; costIron=2; }
                 if(mat==='diamond') { costWood=1; costDiam=2; }
-            } else if(type==='axe') { // diamond axe
+            } else if(type === 'axe' && toolId === 'diamond_axe') { 
                  costWood=2; costDiam=3;
             }
 
-            if(player.wood>=costWood && player.stone>=costStone && player.iron>=costIron && player.diamonds>=costDiam) {
+            const ownedKey = toolId + '_owned';
+
+            if(!player[ownedKey] && player.wood>=costWood && player.stone>=costStone && player.iron>=costIron && player.diamonds>=costDiam) {
                 player.wood-=costWood; player.stone-=costStone; player.iron-=costIron; player.diamonds-=costDiam;
-                let key = 'has' + mat.charAt(0).toUpperCase() + mat.slice(1) + (type==='pick'?'Pickaxe':(type==='axe'?'Axe':'Sword'));
-                player[key] = true;
-                updateHUD(); showMessage(`Stworzono: ${mat} ${type}`, "lime");
+                
+                removeLowerTier(type, toolId);
+                
+                player[ownedKey] = true;
+                player.equippedTool = toolId; 
+                updateHUD(); 
+                showMessage(`Stworzono i Wyposażono: ${data.name}`, "lime");
             }
         }
-        function craftPoisonSword() { if(player.hasIronSword && player.venom>=1) { player.venom--; player.hasPoisonSword=true; updateHUD(); showMessage("Stworzono Zatruty Miecz!", "green"); } }
-        function craftBow() { if(player.string>=3 && player.wood>=3) { player.string-=3; player.wood-=3; player.hasBow=true; updateHUD(); showMessage("Stworzono Łuk!", "orange"); } }
+        
+        function craftArmor(armorId) {
+            let costLeather = 0, costIron = 0;
+            const ownedKey = armorId + '_owned';
+            
+            if (armorId === 'armor') costLeather = 10;
+            if (armorId === 'iron_armor') costIron = 10;
+
+            if(!player[ownedKey] && player.leather>=costLeather && player.iron>=costIron) {
+                player.leather-=costLeather; player.iron-=costIron;
+                
+                if(armorId === 'iron_armor' && player.armor_owned) {
+                    player.armor_owned = false;
+                    showMessage(`Usunięto: ${TOOL_DATA['armor'].name}`, "yellow");
+                }
+
+                player[ownedKey] = true;
+                updateHUD(); 
+                showMessage(`Stworzono: ${TOOL_DATA[armorId].name}`, "blue");
+            }
+        }
+
+        function craftPoisonSword() { 
+            const toolId = 'poison_sword';
+            const ownedKey = toolId + '_owned';
+            const data = TOOL_DATA[toolId];
+
+            if (!player[ownedKey] && player.iron_sword_owned && player.venom>=1) { 
+                player.venom--; 
+                
+                removeLowerTier('sword', toolId);
+                
+                player[ownedKey]=true; 
+                player.equippedTool = toolId;
+                updateHUD(); 
+                showMessage(`Stworzono i Wyposażono ${data.name}!`, "green"); 
+            }
+        }
+
+        function craftBow() { 
+            const toolId = 'bow';
+            const ownedKey = toolId + '_owned';
+            const data = TOOL_DATA[toolId];
+
+            if (!player[ownedKey] && player.string>=3 && player.wood>=3) { 
+                player.string-=3; player.wood-=3; 
+                player[ownedKey]=true; 
+                player.equippedTool = toolId; 
+                updateHUD(); 
+                showMessage(`Stworzono i Wyposażono ${data.name}!`, "orange"); 
+            } 
+        }
+
         function craftArrows() { if(player.stone>=1 && player.wood>=1) { player.stone--; player.wood--; player.arrows+=5; updateHUD(); showMessage("+5 Strzał", "white"); } }
         function craftExplosiveArrows() { if(player.arrows>=1 && player.sulphur>=1) { player.arrows--; player.sulphur--; player.explosiveArrows+=5; updateHUD(); showMessage("+5 Wybuchowych Strzał", "red"); } }
         function craftPoisonArrow() { if(player.explosiveArrows>=1 && player.venom>=1) { player.explosiveArrows--; player.venom--; player.poisonArrows++; updateHUD(); showMessage("+1 Trująca Strzała", "green"); } }
-        function craftArmor() { if(player.leather>=10) { player.leather-=10; player.hasArmor=true; updateHUD(); showMessage("Stworzono Zbroję!", "blue"); } }
-        function craftIronArmor() { if(player.iron>=10) { player.iron-=10; player.hasIronArmor=true; updateHUD(); showMessage("Stworzono Żelazną Zbroję!", "gray"); } }
 
-        function buildHouse(x, z) {
-            if(player.housePlans > 0) {
-                player.housePlans--;
-                const h = new THREE.Group();
-                const walls = new THREE.Mesh(new THREE.BoxGeometry(20, 15, 20), new THREE.MeshLambertMaterial({color: 0x8B4513}));
-                walls.position.y = 7.5; h.add(walls);
-                const roof = new THREE.Mesh(new THREE.ConeGeometry(15, 10, 4), new THREE.MeshLambertMaterial({color: 0x800000}));
-                roof.position.y = 20; roof.rotation.y = Math.PI/4; h.add(roof);
-                h.position.set(x, 0, z);
-                scene.add(h); objects.push(h); walls.userData = { type: 'wood', originalColor: 0x8B4513 };
-                updateHUD(); showMessage("Zbudowano Dom!", "gold");
-                // Stwórz bezpieczną strefę
-                const zoneBox = new THREE.Box3().setFromObject(h);
-                safeZones.push(zoneBox);
-            } else showMessage("Brak planów domu!", "red");
-        }
-        function buildFence(x, z) {
-            if(player.fencePlans > 0) {
-                player.fencePlans--;
-                const f = new THREE.Mesh(new THREE.BoxGeometry(10, 3, 1), new THREE.MeshLambertMaterial({color: 0x8B4513}));
-                f.position.set(x, 1.5, z);
-                scene.add(f); objects.push(f); f.userData = { type: 'wood', originalColor: 0x8B4513 };
-                updateHUD(); showMessage("Postawiono Płot", "brown");
-            } else showMessage("Brak schematu płotu!", "red");
+        // --- FUNKCJE WYPOSAŻANIA (TOOLS, PLANS, ARROWS, SPELLS) ---
+        
+        function equipTool(toolId) {
+            player.equippedTool = toolId;
+            updateHUD();
+            updateInventoryDisplay();
+            showMessage(`Wyposażono: ${TOOL_DATA[toolId].name}`, "lime");
         }
 
-        function updateInventoryDisplay() {
-            const list = document.getElementById('inventory-list');
-            list.innerHTML = '';
-            if(player.housePlans > 0) addInvItem('Dom', () => equipPlan('house'));
-            if(player.fencePlans > 0) addInvItem('Płot', () => equipPlan('fence'));
-            if(player.arrows > 0) addInvItem('Zwykłe Strzały', () => equipArrow('regular'));
-            if(player.explosiveArrows > 0) addInvItem('Wybuchowe Strzały', () => equipArrow('explosive'));
-            if(player.poisonArrows > 0) addInvItem('Trujące Strzały', () => equipArrow('poison'));
-        }
-        function addInvItem(name, onClick) {
-            const btn = document.createElement('button');
-            btn.className = 'equip-btn'; btn.innerText = name; btn.onclick = onClick;
-            const div = document.createElement('div'); div.style.marginBottom='5px';
-            div.innerText = name + ' '; div.appendChild(btn);
-            document.getElementById('inventory-list').appendChild(div);
-        }
-        function equipPlan(type) { 
-            player.equippedPlan = type; 
-            slotPlanText.innerHTML = type === 'house' ? "PLAN<br>DOMU" : "SCHEMAT<br>PŁOTU";
-            slotPlanDiv.classList.add('slot-active');
-        }
-        function equipArrow(type) { 
-            player.equippedArrow = type;
-            let icon = type==='explosive' ? '💥' : (type==='poison' ? '☠️' : '🏹');
-            document.querySelector('#slot-arrow .slot-icon').innerText = icon;
-            slotArrowText.innerHTML = type.toUpperCase().substring(0,4) + ".<br>STRZAŁA";
-            slotArrowDiv.classList.add('slot-active');
-        }
-
-        function shootProjectile(startPos, targetPos, isWeb, isEnemyArrow) {
-            const direction = new THREE.Vector3().subVectors(targetPos, startPos).normalize();
-            const color = isWeb ? 0xFFFFFF : 0xAAAAAA;
-            const geom = isWeb ? new THREE.SphereGeometry(0.5) : new THREE.BoxGeometry(0.1, 0.1, 2);
-            const proj = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({ color: color }));
-            proj.position.copy(startPos);
-            proj.lookAt(targetPos);
-            proj.userData = { 
-                velocity: direction.multiplyScalar(isWeb ? 15 : 25), 
-                isWeb: isWeb, 
-                isEnemyArrow: isEnemyArrow,
-                startPosition: startPos.clone(),
-                maxRangeSq: 50*50,
-                type: 'projectile'
-            };
-            scene.add(proj);
-            projectiles.push(proj);
+        function equipPlan(planType) {
+            player.equippedPlan = planType;
+            updateHUD();
+            updateInventoryDisplay();
+            showMessage(`Wyposażono plan: ${planType === 'house' ? 'Dom' : 'Płot'}`, "lightblue");
         }
         
+        function equipArrow(arrowType) {
+            player.equippedArrow = arrowType;
+            updateHUD();
+            updateInventoryDisplay();
+            showMessage(`Wyposażono strzały: ${arrowType}`, "white");
+        }
+        
+        function equipSpell(spellId) {
+            player.equippedSpell = spellId;
+            updateHUD();
+            updateInventoryDisplay();
+            let spellName = '';
+            if (spellId === 'repulsion') spellName = 'Odpychania';
+            else if (spellId === 'fireAura') spellName = 'Ognistej Aury';
+            else if (spellId === 'trap') spellName = 'Pułapki'; 
+            else if (spellId === 'teleport') spellName = 'Teleportacji'; 
+            showMessage(`Wyposażono zaklęcie: ${spellName}`, "violet");
+        }
+        
+        function equipNone() {
+            player.equippedTool = null;
+            updateHUD();
+            updateInventoryDisplay();
+            showMessage("Nie wyposażono żadnego narzędzia/broni", "gray");
+        }
+        
+        // --- NOWA FUNKCJA: AKTUALIZACJA WIDOKU EKWIPUNKU ---
+        function updateInventoryDisplay() {
+            const list = document.getElementById('inventory-list');
+            let html = '';
+
+            // 1. NARZĘDZIA / BROŃ
+            html += '<div class="inventory-section"><h3>Narzędzia i Bronie</h3>';
+            
+            const toolWeaponList = [
+                'wooden_axe', 'diamond_axe',
+                'wooden_pickaxe', 'stone_pickaxe', 'iron_pickaxe', 'diamond_pickaxe',
+                'stone_sword', 'iron_sword', 'poison_sword', 'diamond_sword',
+                'bow',
+            ];
+            
+            toolWeaponList.forEach(id => {
+                if (player[id + '_owned']) {
+                    const data = TOOL_DATA[id];
+                    const isEquipped = player.equippedTool === id;
+                    const status = isEquipped ? '<span class="equipped-status"> (WYPOSAŻONE)</span>' : '';
+                    const buttonText = isEquipped ? 'Odeślij' : 'Wyposaż';
+                    const buttonAction = isEquipped ? `equipNone()` : `equipTool('${id}')`;
+                    
+                    html += `
+                        <div class="inventory-item">
+                            <div class="item-info">
+                                ${data.name}${status}
+                            </div>
+                            <button class="equip-btn" onclick="${buttonAction}">${buttonText}</button>
+                        </div>
+                    `;
+                }
+            });
+
+            // Dodanie opcji 'Brak'
+            const isNoneEquipped = !player.equippedTool || player.equippedTool === 'bare_hands';
+            html += `
+                <div class="inventory-item">
+                    <div class="item-info">
+                        Gołe Ręce/Brak Narzędzia ${isNoneEquipped ? '<span class="equipped-status"> (WYPOSAŻONE)</span>' : ''}
+                    </div>
+                    <button class="equip-btn" onclick="equipNone()">Wyposaż</button>
+                </div>
+            `;
+            html += '</div>'; // Koniec sekcji narzędzi
+
+            // 2. SCHEMATY/PLANY
+            html += '<div class="inventory-section"><h3>Schematy Budowy</h3>';
+            const planNames = { 'house': 'Plan Domu (🏠)', 'fence': 'Schemat Płotu (🧱)' };
+            
+            ['house', 'fence'].forEach(id => {
+                if (player[id + 'Plans'] > 0) {
+                    const isEquipped = player.equippedPlan === id;
+                    const status = isEquipped ? '<span class="equipped-status"> (AKTYWNE)</span>' : '';
+                    const buttonText = isEquipped ? 'Anuluj' : 'Wybierz Plan';
+                    const buttonAction = isEquipped ? `equipPlan(null)` : `equipPlan('${id}')`;
+                    
+                    html += `
+                        <div class="inventory-item">
+                            <div class="item-info">
+                                ${planNames[id]} (Posiadane: ${player[id + 'Plans']})${status}
+                            </div>
+                            <button class="equip-btn" onclick="${buttonAction}">${buttonText}</button>
+                        </div>
+                    `;
+                }
+            });
+            html += '</div>'; // Koniec sekcji planów
+
+            // 3. STRZAŁY
+            html += '<div class="inventory-section"><h3>Typy Strzał (Wymagany Łuk)</h3>';
+            const arrowTypes = [
+                { id: 'regular', name: 'Zwykłe Strzały (🏹)', countKey: 'arrows' },
+                { id: 'explosive', name: 'Wybuchowe Strzały (💥)', countKey: 'explosiveArrows' },
+                { id: 'poison', name: 'Trujące Strzały (🤢)', countKey: 'poisonArrows' }
+            ];
+
+            arrowTypes.forEach(arrow => {
+                const count = player[arrow.countKey];
+                const isEquipped = player.equippedArrow === arrow.id;
+                const status = isEquipped ? '<span class="equipped-status"> (AKTYWNE)</span>' : '';
+                const buttonText = isEquipped ? 'Anuluj' : 'Wybierz Strzały';
+                const buttonAction = isEquipped ? `equipArrow(null)` : `equipArrow('${arrow.id}')`;
+                
+                html += `
+                    <div class="inventory-item">
+                        <div class="item-info">
+                            ${arrow.name} (Posiadane: ${count})${status}
+                        </div>
+                        <button class="equip-btn" onclick="${buttonAction}" ${count === 0 && !isEquipped ? 'disabled' : ''}>${buttonText}</button>
+                    </div>
+                `;
+            });
+            html += '</div>'; // Koniec sekcji strzał
+
+            // 4. ZAKLĘCIA/ZWOJE
+            html += '<div class="inventory-section"><h3>Zaklęcia (Użyj klawisza F)</h3>';
+            const spellList = [
+                { id: 'repulsion', name: 'Zwój Odpychania (🟣)', countKey: 'repulsionScrolls' },
+                { id: 'fireAura', name: 'Zwój Ognistej Aury (🔥)', countKey: 'fireAuraScrolls' },
+                { id: 'trap', name: 'Zwój Pułapki (⛓️)', countKey: 'trapScrolls' },
+                { id: 'teleport', name: 'Zwój Teleportacji (🌌)', countKey: 'teleportScrolls' }
+            ];
+
+            spellList.forEach(spell => {
+                const count = player[spell.countKey];
+                const isEquipped = player.equippedSpell === spell.id;
+                const status = isEquipped ? '<span class="equipped-status"> (AKTYWNE)</span>' : '';
+                const buttonText = isEquipped ? 'Anuluj' : 'Wybierz Zaklęcie';
+                const buttonAction = isEquipped ? `equipSpell(null)` : `equipSpell('${spell.id}')`;
+                
+                if (count > 0) {
+                    html += `
+                        <div class="inventory-item">
+                            <div class="item-info">
+                                ${spell.name}${status}
+                            </div>
+                            <button class="equip-btn" onclick="${buttonAction}">${buttonText}</button>
+                        </div>
+                    `;
+                }
+            });
+            html += '</div>'; // Koniec sekcji zwojów
+
+            list.innerHTML = html;
+        }
+
+
+        // --- FUNKCJE BUDOWANIA ---
+
+        function buildHouse(x, z) {
+            if (player.housePlans <= 0 || player.equippedPlan !== 'house') {
+                showMessage("Brak planu domu!", "red");
+                return;
+            }
+            player.housePlans--;
+            
+            const floorX = Math.floor(x / 20) * 20;
+            const floorZ = Math.floor(z / 20) * 20;
+
+            const HOUSE_SIZE = 18;
+            const HOUSE_HEIGHT = 15;
+            const center = new THREE.Vector3(floorX, 0, floorZ);
+
+            const safeZone = new THREE.Box3(
+                new THREE.Vector3(center.x - HOUSE_SIZE / 2 - 5, -1, center.z - HOUSE_SIZE / 2 - 5),
+                new THREE.Vector3(center.x + HOUSE_SIZE / 2 + 5, 100, center.z + HOUSE_SIZE / 2 + 5)
+            );
+            safeZones.push(safeZone);
+            
+            const wallMat = new THREE.MeshLambertMaterial({ color: 0xA0522D }); 
+            const roofMat = new THREE.MeshLambertMaterial({ color: 0x8B0000 }); 
+
+            const floor = new THREE.Mesh(new THREE.BoxGeometry(HOUSE_SIZE, 0.5, HOUSE_SIZE), wallMat);
+            floor.position.set(center.x, 0.25, center.z);
+            scene.add(floor);
+            objects.push(floor);
+
+            const wallGeom = new THREE.BoxGeometry(HOUSE_SIZE, HOUSE_HEIGHT, 0.5);
+            const wallPositions = [
+                {x: center.x, z: center.z - HOUSE_SIZE/2 + 0.25, rot: 0},
+                {x: center.x, z: center.z + HOUSE_SIZE/2 - 0.25, rot: 0},
+                {x: center.x - HOUSE_SIZE/2 + 0.25, z: center.z, rot: Math.PI/2},
+                {x: center.x + HOUSE_SIZE/2 - 0.25, z: center.z, rot: Math.PI/2}
+            ];
+
+            wallPositions.forEach(pos => {
+                const wall = new THREE.Mesh(wallGeom, wallMat);
+                wall.position.set(pos.x, HOUSE_HEIGHT / 2 + 0.5, pos.z);
+                wall.rotation.y = pos.rot;
+                scene.add(wall);
+                objects.push(wall);
+            });
+
+            const roof = new THREE.Mesh(new THREE.ConeGeometry(HOUSE_SIZE * 0.7, HOUSE_SIZE * 0.5, 4), roofMat);
+            roof.rotation.y = Math.PI / 4;
+            roof.position.set(center.x, HOUSE_HEIGHT + (HOUSE_SIZE * 0.25) + 0.5, center.z);
+            scene.add(roof);
+
+            showMessage("Zbudowano Dom! (Strefa Bezpieczeństwa)", "gold");
+            player.equippedPlan = null;
+            updateHUD();
+        }
+        
+        function buildFence(x, z) {
+            if (player.fencePlans <= 0 || player.equippedPlan !== 'fence') {
+                showMessage("Brak schematu płotu!", "red");
+                return;
+            }
+            player.fencePlans--;
+            
+            const positionX = Math.floor(x / 5) * 5;
+            const positionZ = Math.floor(z / 5) * 5;
+            const FENCE_HEIGHT = 4;
+            const FENCE_WIDTH = 0.5;
+            const FENCE_LENGTH = 5;
+
+            const postMat = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+            const postGeom = new THREE.BoxGeometry(FENCE_WIDTH, FENCE_HEIGHT, FENCE_WIDTH);
+            const post = new THREE.Mesh(postGeom, postMat);
+            post.position.set(positionX, FENCE_HEIGHT / 2 + 0.25, positionZ);
+            scene.add(post);
+            objects.push(post);
+
+            const crossbarGeom = new THREE.BoxGeometry(FENCE_WIDTH, FENCE_WIDTH, FENCE_LENGTH - FENCE_WIDTH);
+            crossbarGeom.rotateY(Math.PI / 2); 
+            const crossbarMat = new THREE.MeshLambertMaterial({ color: 0x694200 });
+
+            const crossbar1 = new THREE.Mesh(crossbarGeom, crossbarMat);
+            crossbar1.position.set(positionX, FENCE_HEIGHT * 0.3 + 0.25, positionZ);
+            scene.add(crossbar1);
+            objects.push(crossbar1);
+
+            const crossbar2 = new THREE.Mesh(crossbarGeom, crossbarMat);
+            crossbar2.position.set(positionX, FENCE_HEIGHT * 0.7 + 0.25, positionZ);
+            scene.add(crossbar2);
+            objects.push(crossbar2);
+
+            showMessage("Zbudowano element Płotu!", "brown");
+            player.equippedPlan = null;
+            updateHUD();
+        }
+
+        // --- FUNKCJE ZAKLĘĆ ---
+        function castRepulsionSpell() {
+            updateHUD();
+            showMessage("Użyto Odpychania!", "purple");
+            
+            const playerPos = camera.position.clone();
+            
+            mobs.forEach(mob => {
+                const dist = mob.position.distanceTo(playerPos);
+                if (dist > 1 && dist < REPULSION_CAST_RANGE) {
+                    const pushDir = mob.position.clone().sub(playerPos).normalize();
+                    mob.userData.velocity = pushDir.multiplyScalar(REPULSION_PUSH_FORCE); 
+                }
+            });
+        }
+
+        function castFireAuraSpell(time) {
+            if (isFireAuraActive) {
+                showMessage("Aura już aktywna!", "red");
+                return;
+            }
+            isFireAuraActive = true;
+            lastAuraDamageTime = time;
+            fireAuraEndTime = time + FIRE_AURA_DURATION;
+            
+            let auraMesh = scene.getObjectByName('fireAura');
+            if (!auraMesh) {
+                const geo = new THREE.SphereGeometry(FIRE_AURA_RANGE, 32, 32); 
+                const mat = new THREE.MeshBasicMaterial({ color: 0xFF4500, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
+                auraMesh = new THREE.Mesh(geo, mat);
+                auraMesh.name = 'fireAura';
+                auraMesh.position.y = PLAYER_HEIGHT / 2;
+                scene.add(auraMesh);
+            }
+            auraMesh.visible = true;
+            
+            updateHUD();
+            showMessage("Użyto Ognistej Aury! (20s)", "orange");
+        }
+        
+        function castTrapSpell() { 
+            if (activeTraps.length > 0) {
+                showMessage("Pułapka już aktywna!", "red");
+                return;
+            }
+            
+            const playerPos = camera.position.clone();
+            let nearestZombie = null;
+            let minDistSq = Infinity;
+
+            mobs.forEach(mob => {
+                if (mob.userData.type === 'zombie' && !mob.userData.isTrapped) {
+                    const distSq = mob.position.distanceToSquared(playerPos);
+                    if (distSq < minDistSq) {
+                        minDistSq = distSq;
+                        nearestZombie = mob;
+                    }
+                }
+            });
+
+            if (nearestZombie && minDistSq < REPULSION_CAST_RANGE * REPULSION_CAST_RANGE) { 
+                updateHUD();
+                showMessage("Zombi Złapany!", "brown");
+
+                const mobPos = nearestZombie.position.clone();
+
+                const cageGroup = new THREE.Group();
+                const barMat = new THREE.MeshBasicMaterial({ color: 0x666666 });
+                const boxSize = 3; 
+                
+                const barGeo = new THREE.BoxGeometry(0.1, 8, 0.1);
+                const bars = [
+                    new THREE.Mesh(barGeo, barMat), new THREE.Mesh(barGeo, barMat),
+                    new THREE.Mesh(barGeo, barMat), new THREE.Mesh(barGeo, barMat)
+                ];
+                
+                bars[0].position.set(boxSize/2, 4, boxSize/2);
+                bars[1].position.set(-boxSize/2, 4, boxSize/2);
+                bars[2].position.set(boxSize/2, 4, -boxSize/2);
+                bars[3].position.set(-boxSize/2, 4, -boxSize/2);
+
+                bars.forEach(bar => cageGroup.add(bar));
+
+                cageGroup.position.copy(mobPos);
+                scene.add(cageGroup);
+
+                nearestZombie.userData.isTrapped = true;
+                
+                activeTraps.push({ 
+                    mob: nearestZombie, 
+                    cage: cageGroup, 
+                    endTime: performance.now() + TRAP_DURATION 
+                });
+
+            } else {
+                showMessage("Nie znaleziono Zombi w zasięgu!", "yellow");
+            }
+        }
+        
+        function castTeleportSpell() { 
+            updateHUD();
+            showMessage("Teleportacja 100 bloków do przodu!", "indigo");
+            
+            const distance = 100; 
+            const dir = new THREE.Vector3();
+            camera.getWorldDirection(dir);
+            dir.y = 0; 
+            dir.normalize();
+
+            const newX = camera.position.x + dir.x * distance;
+            const newZ = camera.position.z + dir.z * distance;
+            
+            const mapLimit = 950;
+            const clampedX = Math.max(-mapLimit, Math.min(mapLimit, newX));
+            const clampedZ = Math.max(-mapLimit, Math.min(mapLimit, newZ));
+
+            camera.position.set(clampedX, PLAYER_HEIGHT, clampedZ);
+            velocity.set(0, 0, 0); 
+        }
+
+        // --- FUNKCJE POCISKÓW I KONIEC GRY ---
+
+        function handleGameOver() {
+            isGameOver = true;
+            document.exitPointerLock();
+            // Zapis ekwipunku gracza jako łup
+            const loot = {};
+            Object.keys(player).forEach(key => {
+                if (key !== 'health' && key !== 'hunger' && key !== 'equippedTool' && key !== 'equippedPlan' && key !== 'equippedArrow' && key !== 'equippedSpell') {
+                    loot[key] = player[key];
+                }
+            });
+            // Reset tymczasowych zmiennych
+            loot.repulsionScrolls = 0;
+            loot.fireAuraScrolls = 0;
+            loot.trapScrolls = 0;
+            loot.teleportScrolls = 0;
+            loot.blackInk = 0;
+
+            createDeathBlock(camera.position.x, camera.position.z, loot);
+            
+            blockerTitle.innerText = "GAME OVER!";
+            blockerMessage.innerHTML = "Zmarłeś z głodu lub w walce!<br>Znajdź niebieski blok na mapie, by odzyskać ekwipunek.<br>Kliknij, by zacząć od nowa.";
+            blocker.style.display = 'flex';
+        }
+        
+        function shootProjectile(startPos, targetPos, isWeb, isEnemy) {
+            const geo = new THREE.SphereGeometry(0.5, 8, 8);
+            const mat = new THREE.MeshLambertMaterial({ color: isWeb ? 0xFFFFFF : (isEnemy ? 0xDDDDDD : 0xAAAAAA) });
+            const projectile = new THREE.Mesh(geo, mat);
+            projectile.position.copy(startPos);
+
+            const velocityVector = targetPos.clone().sub(startPos).normalize();
+            
+            // Dodanie niewielkiej losowości dla celności wroga
+            if (isEnemy) {
+                velocityVector.x += (Math.random() - 0.5) * 0.1;
+                velocityVector.y += (Math.random() - 0.5) * 0.1;
+                velocityVector.z += (Math.random() - 0.5) * 0.1;
+                velocityVector.normalize();
+            }
+            
+            const speed = isWeb ? 150 : 400; // Pajęczyna jest wolniejsza
+
+            projectile.userData = {
+                velocity: velocityVector.multiplyScalar(speed),
+                isWeb: isWeb,
+                isEnemy: isEnemy,
+                damage: isWeb ? 0 : (isEnemy ? SKELETON_BOW_DAMAGE : REGULAR_ARROW_DAMAGE),
+                maxRangeSq: ARROW_MAX_RANGE * ARROW_MAX_RANGE,
+                startPos: startPos.clone(),
+                isExplosive: false,
+                isPoison: false,
+            };
+            
+            scene.add(projectile);
+            projectiles.push(projectile);
+        }
+
         function updateProjectiles(delta) {
-            const pBox = new THREE.Box3().setFromCenterAndSize(camera.position, new THREE.Vector3(1, 4, 1)); 
-            const mobBoxes = mobs.map(mob => new THREE.Box3().setFromObject(mob));
+            const playerBox = new THREE.Box3().setFromCenterAndSize(camera.position, new THREE.Vector3(2, PLAYER_HEIGHT, 2));
 
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 const proj = projectiles[i];
-                proj.position.add(proj.userData.velocity.clone().multiplyScalar(delta));
+                const data = proj.userData;
                 
-                if (proj.userData.isWeb || proj.userData.isEnemyArrow) {
-                    if (pBox.containsPoint(proj.position)) {
-                        let inSafeZone = false;
-                        for(let zone of safeZones) if(zone.containsPoint(camera.position)) inSafeZone = true;
+                // Zastosowanie ruchu
+                proj.position.x += data.velocity.x * delta;
+                proj.position.y += data.velocity.y * delta;
+                proj.position.z += data.velocity.z * delta;
+
+                // Prosta grawitacja dla pocisków gracza (strzały)
+                if (!data.isWeb && !data.isEnemy) { 
+                    data.velocity.y -= 9.8 * 100 * delta; 
+                }
+
+                let hit = false;
+                
+                // 1. Sprawdzenie kolizji z Graczem (tylko pociski wroga)
+                if (data.isEnemy) {
+                    const projBox = new THREE.Box3().setFromObject(proj);
+                    if (playerBox.intersectsBox(projBox)) {
                         
-                        if(!inSafeZone) {
-                            if (proj.userData.isWeb) {
-                                slowEndTime = performance.now() + 5000; slowOverlay.style.display = 'block';
-                                showMessage("Spowolnienie!", "green");
-                            } else {
-                                let dmg = SKELETON_ATTACK_DAMAGE;
-                                if (player.hasIronArmor) dmg *= 0.5;
-                                else if (player.hasArmor) dmg *= 0.75;
-                                player.health -= dmg;
-                                showMessage("Trafienie!", "red");
-                                if(player.health<=0) handleGameOver();
-                            }
+                        let damage = data.damage;
+                        if(player.iron_armor_owned) damage *= 0.5;
+                        else if (player.armor_owned) damage *= 0.75;
+                        
+                        if (data.isWeb) { // Pajęczyna Pająka
+                            slowEndTime = performance.now() + 5000;
+                            slowOverlay.style.display = 'block';
+                            showMessage("Spowolnienie (Pajęczyna)!", "lightgreen");
+                            
+                        } else { // Zwykły pocisk wroga (np. strzała szkieleta)
+                            player.health -= damage;
+                            showMessage("Trafienie! -" + damage.toFixed(1) + " HP", "red");
                         }
-                        scene.remove(proj); projectiles.splice(i, 1); continue;
-                    }
-                } 
-                else if (proj.userData.type === 'player_projectile') {
-                    let hit = false;
-                    for (let j = mobs.length - 1; j >= 0; j--) {
-                        if (mobBoxes[j].containsPoint(proj.position)) {
-                            const mob = mobs[j];
-                            if (proj.userData.isPoison) {
-                                createGasCloud(mob.position.clone());
-                                scene.remove(proj); projectiles.splice(i, 1);
-                                hit = true; break;
-                            }
-                            const dmg = proj.userData.isExplosive ? EXPLOSIVE_ARROW_DAMAGE : REGULAR_ARROW_DAMAGE;
-                            mob.userData.health -= dmg; showMessage(`Trafienie! -${dmg} HP`, "red");
-                            if (mob.userData.health <= 0) killMob(mob);
-                            scene.remove(proj); projectiles.splice(i, 1); hit = true; break;
-                        }
-                    }
-                    if (hit) continue;
-                    if (proj.position.y < 1 || (proj.userData.isPoison && proj.position.y < 2)) { 
-                        if (proj.userData.isPoison) createGasCloud(proj.position.clone());
-                        scene.remove(proj); projectiles.splice(i, 1); continue; 
+
+                        if(player.health <= 0) handleGameOver();
+                        updateHUD();
+                        hit = true;
                     }
                 }
-                if (proj.position.distanceToSquared(proj.userData.startPosition) > proj.userData.maxRangeSq) {
-                    scene.remove(proj); projectiles.splice(i, 1);
+                
+                // 2. Sprawdzenie kolizji z Mobami (tylko pociski gracza)
+                if (!data.isEnemy) {
+                    mobs.forEach(mob => {
+                        if (hit) return; // Już w coś trafiono
+
+                        const mobBox = new THREE.Box3().setFromObject(mob);
+                        const projBox = new THREE.Box3().setFromObject(proj);
+
+                        if (mobBox.intersectsBox(projBox)) {
+                            mob.userData.health -= data.damage; 
+                            
+                            if (data.isExplosive) {
+                                mob.userData.health -= EXPLOSIVE_ARROW_DAMAGE; 
+                                // Wizualizacja (efekt wybuchu jest już zdefiniowany w HTML)
+                                const explosionOverlay = document.getElementById('explosion-overlay');
+                                explosionOverlay.style.opacity = 1;
+                                explosionOverlay.style.transform = `translate(-50%, -50%) translate3d(${proj.position.x}px, 0px, ${proj.position.z}px) scale(1)`;
+                                setTimeout(() => { explosionOverlay.style.opacity = 0; explosionOverlay.style.transform = `translate(-50%, -50%) scale(0)`; }, 100);
+                                showMessage("Wybuch!", "red");
+                            }
+                            
+                            if (data.isPoison) { 
+                                mob.userData.slowEndTime = performance.now() + 5000;
+                                showMessage("Trafienie Trucizną!", "lightgreen");
+                            }
+                            
+                            if(mob.userData.health <= 0) killMob(mob);
+                            
+                            updateHUD();
+                            hit = true;
+                        }
+                    });
+                }
+                
+                // 3. Sprawdzenie kolizji ze Środowiskiem
+                if (!data.isWeb) { 
+                    raycaster.set(proj.position.clone(), data.velocity.clone().normalize());
+                    const intersects = raycaster.intersectObjects(objects);
+
+                    if (intersects.length > 0 && intersects[0].distance < 1) { 
+                        hit = true;
+                    }
+                }
+                
+                // 4. Sprawdzenie maksymalnego zasięgu
+                if (proj.position.distanceToSquared(data.startPos) > data.maxRangeSq) {
+                    hit = true;
+                }
+
+                if (hit) {
+                    scene.remove(proj);
+                    projectiles.splice(i, 1);
                 }
             }
         }
 
-        function createGasCloud(position) {
-            const geometry = new THREE.SphereGeometry(10, 16, 16);
-            const material = new THREE.MeshBasicMaterial({ color: 0x00FF00, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
-            const cloud = new THREE.Mesh(geometry, material); cloud.position.copy(position); scene.add(cloud);
-            gasClouds.push({ mesh: cloud, creationTime: performance.now() });
-        }
-        
-        function handleGameOver() {
-            isGameOver = true; document.exitPointerLock();
-            createDeathBlock(camera.position.x, camera.position.z, JSON.parse(JSON.stringify(player))); 
-            player = JSON.parse(JSON.stringify(INITIAL_PLAYER_STATE));
-            blockerTitle.innerText = "KONIEC GRY!";
-            blockerMessage.innerHTML = "Wykop niebieski blok, by odzyskać rzeczy.<br>Kliknij, by zagrać.";
-            blocker.style.display = 'flex';
-        }
 
         function animate() {
             requestAnimationFrame(animate);
@@ -1184,13 +2217,23 @@
             if (document.pointerLockElement === document.body && !isGameOver) {
                 checkSpawns(time);
 
+                // --- 1. Proximity and Spell Cooldown Checks ---
+                let isSwordSkeletonNear = false;
+                const playerPosClone = camera.position.clone();
+
+                const remainingCooldown = Math.max(0, lastSpellTime + SPELL_COOLDOWN - time);
+                if (remainingCooldown > 0) {
+                    const seconds = Math.ceil(remainingCooldown / 1000);
+                    spellCooldownDisplay.innerText = `${seconds}s`;
+                    spellCooldownDisplay.style.display = 'flex';
+                } else {
+                    spellCooldownDisplay.style.display = 'none';
+                }
+
                 if (isChargingBowQ) { 
                     const factor = Math.min(1, (time - bowChargeStartTime)/1000/MAX_CHARGE_TIME);
                     bowChargeBar.style.width = `${factor * 100}%`;
                 }
-
-                let inSafeZone = false;
-                for(let zone of safeZones) { if(zone.containsPoint(camera.position)) inSafeZone = true; }
 
                 for (let i = gasClouds.length - 1; i >= 0; i--) {
                     const c = gasClouds[i];
@@ -1204,11 +2247,66 @@
                         });
                     }
                 }
+                
+                for (let i = activeTraps.length - 1; i >= 0; i--) {
+                    const trap = activeTraps[i];
+                    if (time > trap.endTime) {
+                        scene.remove(trap.cage);
+                        trap.mob.userData.isTrapped = false;
+                        activeTraps.splice(i, 1);
+                    } else {
+                        trap.mob.userData.isTrapped = true;
+                        trap.mob.userData.velocity.set(0, 0, 0); 
+                        trap.cage.position.copy(trap.mob.position);
+                        trap.cage.position.y = 0; 
+                    }
+                }
+                
+                if (isFireAuraActive) {
+                    const auraMesh = scene.getObjectByName('fireAura');
+                    if (time > fireAuraEndTime) {
+                        isFireAuraActive = false;
+                        if(auraMesh) auraMesh.visible = false;
+                        showMessage("Aura Wygasła", "orange");
+                    } else {
+                        if(auraMesh) auraMesh.position.set(camera.position.x, PLAYER_HEIGHT / 2, camera.position.z);
+
+                        if (time - lastAuraDamageTime >= 100) {
+                            mobs.forEach(mob => {
+                                if (mob.position.distanceToSquared(camera.position) < FIRE_AURA_RANGE_SQ) {
+                                    mob.userData.health -= FIRE_AURA_DAMAGE_PER_SEC * (0.1); 
+                                    if (mob.userData.health <= 0) killMob(mob);
+                                }
+                            });
+                            lastAuraDamageTime = time;
+                        }
+                    }
+                }
+
+
+                // --- 2. Hunger and Safe Zone Logic ---
+                let inSafeZone = false;
+                for(let zone of safeZones) { if(zone.containsPoint(camera.position)) inSafeZone = true; }
 
                 if(inSafeZone) {
                     slowEndTime = 0; slowOverlay.style.display = 'none';
                 } else {
+                    // Check for Sword Skeleton proximity (for hunger drain)
+                    mobs.forEach(mob => {
+                        if (mob.userData.type === 'sword_skeleton') {
+                            const distSq = mob.position.distanceToSquared(playerPosClone);
+                            // 10 kratek to 10 * 10 = 100 w odległości kwadratowej
+                            if (distSq < mob.userData.hungerAuraRange * mob.userData.hungerAuraRange) {
+                                isSwordSkeletonNear = true;
+                            }
+                        }
+                    });
+                    
                     let hungerRate = BASE_HUNGER_DEPLETION_RATE;
+                    if (isSwordSkeletonNear) { // 3 times faster
+                        hungerRate *= 3;
+                    }
+
                     if(player.hunger > 0) {
                         player.hunger -= hungerRate * delta; if(player.hunger<=0) player.hunger=0;
                         if(Math.floor(time)%2==0) updateHUD();
@@ -1217,7 +2315,7 @@
                     }
                 }
 
-                updateProjectiles(delta);
+                updateProjectiles(delta); // WYWOŁANIE POPRAWIONE
 
                 velocity.x -= velocity.x * 10.0 * delta;
                 velocity.z -= velocity.z * 10.0 * delta;
@@ -1227,7 +2325,7 @@
                 direction.normalize(); 
 
                 let currentSpeed = BASE_SPEED;
-                if (player.hasIronArmor) currentSpeed *= IRON_ARMOR_PENALTY; 
+                if (player.iron_armor_owned) currentSpeed *= IRON_ARMOR_PENALTY; 
                 if (time < slowEndTime) currentSpeed *= WEB_SLOW_FACTOR; else slowOverlay.style.display = 'none';
 
                 if (moveForward || moveBackward) velocity.z -= direction.z * currentSpeed * delta;
@@ -1242,11 +2340,25 @@
 
                 if (camera.position.y < PLAYER_HEIGHT) { velocity.y = 0; camera.position.y = PLAYER_HEIGHT; canJump = true; }
 
+                // --- 4. Mob Movement/AI/Attacks ---
                 mobs.forEach(mob => {
                     const data = mob.userData;
+                    
+                    if (data.isTrapped) return; 
+
                     let dx=0, dz=0;
                     let mobSpeed = data.walkSpeed;
                     if (time < data.slowEndTime) mobSpeed *= 0.7; 
+                    
+                    if(data.velocity && data.velocity.lengthSq() > 0.01) {
+                         const pushDelta = data.velocity.clone().multiplyScalar(delta);
+                         mob.position.x += pushDelta.x;
+                         mob.position.z += pushDelta.z;
+                         
+                         data.velocity.multiplyScalar(0.9); 
+                         return; 
+                    }
+
 
                     let pushed = false;
                     for (let zone of safeZones) {
@@ -1264,12 +2376,17 @@
                     if (!pushed) {
                          if (data.type === 'cow') {
                             if (time > data.nextTurnTime) {
+                                data.walkDirection = data.walkDirection || new THREE.Vector3();
                                 data.walkDirection.set(Math.random()-0.5, 0, Math.random()-0.5).normalize();
-                                data.nextTurnTime = time + 2000;
                                 mob.rotation.y = Math.atan2(data.walkDirection.x, data.walkDirection.z);
+                                data.nextTurnTime = time + 2000;
                             }
                             dx = data.walkDirection.x * mobSpeed * delta;
                             dz = data.walkDirection.z * mobSpeed * delta;
+                            if (data.head) {
+                                data.head.rotation.x = Math.sin(time * 2) * 0.1;
+                                data.head.rotation.y = Math.cos(time * 3) * 0.1;
+                            }
                         } else {
                             const pPos = camera.position.clone();
                             const dist = mob.position.distanceTo(pPos);
@@ -1278,21 +2395,28 @@
                             if (data.type === 'skeleton') {
                                 if (dist > SKELETON_RANGE) { const d = pPos.sub(mob.position).normalize(); dx = d.x*mobSpeed*delta; dz = d.z*mobSpeed*delta; }
                                 if (dist <= SKELETON_RANGE + 10 && time > data.lastAttackTime + data.attackCooldown) {
-                                    shootProjectile(mob.position, camera.position, false, true); data.lastAttackTime = time;
+                                    const arrowStartPos = mob.position.clone();
+                                    arrowStartPos.y = 8; 
+                                    
+                                    const playerAimPos = camera.position.clone();
+                                    playerAimPos.y = camera.position.y; 
+
+                                    shootProjectile(arrowStartPos, playerAimPos, false, true); 
+                                    data.lastAttackTime = time;
                                 }
                             } else if (data.type === 'spider') {
                                 if (dist > 20) { const d = pPos.sub(mob.position).normalize(); dx = d.x*mobSpeed*delta; dz = d.z*mobSpeed*delta; }
                                 if (dist <= 30 && time > data.lastAttackTime + data.attackCooldown) {
                                     shootProjectile(mob.position, camera.position, true, false); data.lastAttackTime = time;
                                 }
-                            } else if (data.type === 'zombie') {
-                                if (dist > 2.5) { const d = pPos.sub(mob.position).normalize(); dx = d.x*mobSpeed*delta; dz = d.z*mobSpeed*delta; }
+                            } else if (data.type === 'zombie' || data.type === 'sword_skeleton') {
+                                if (dist > data.attackRange) { const d = pPos.sub(mob.position).normalize(); dx = d.x*mobSpeed*delta; dz = d.z*mobSpeed*delta; }
                                 else if (time > data.lastAttackTime + data.attackCooldown) {
-                                    let dmg = ZOMBIE_ATTACK_DAMAGE;
-                                    if(player.hasIronArmor) dmg *= 0.5;
-                                    else if(player.hasArmor) dmg *= 0.75;
+                                    let dmg = data.type === 'sword_skeleton' ? data.damage : ZOMBIE_ATTACK_DAMAGE; // 10 dmg dla sword_skeleton
+                                    if(player.iron_armor_owned) dmg *= 0.5;
+                                    else if (player.armor_owned) dmg *= 0.75;
                                     player.health -= dmg;
-                                    showMessage("Ugryzienie!", "red"); data.lastAttackTime = time;
+                                    showMessage(data.type === 'sword_skeleton' ? "Cięcie Mieczem!" : "Ugryzienie!", "red"); data.lastAttackTime = time;
                                     if(player.health<=0) handleGameOver();
                                 }
                             }
